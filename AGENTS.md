@@ -6,15 +6,43 @@
 
 这是一个使用paramiko库进行SSH连接和远程操作的Python SSH工具项目。
 
-## 命令
+## 开发环境设置（⚠️ 必须使用虚拟环境）
 
-### 环境设置
+### 1. 创建并激活虚拟环境
+
 ```bash
-# 安装依赖项（如果requirements.txt存在）
-pip install -r requirements.txt
+# 创建虚拟环境（仅需执行一次）
+python3 -m venv .venv
 
-# 如果没有requirements文件，手动安装paramiko
-pip install paramiko
+# 激活虚拟环境（⚠️ 每次开发前必须执行）
+source .venv/bin/activate  # Linux/Mac
+# 或
+.venv\Scripts\activate     # Windows
+
+# 验证虚拟环境已激活
+which python  # 应显示 .venv/bin/python
+```
+
+### 2. 安装依赖
+
+```bash
+# 确保虚拟环境已激活（提示符前有 (.venv)）
+
+# 安装项目依赖
+pip install -e .
+
+# 安装开发依赖
+pip install pytest pytest-cov black flake8 mypy pre-commit isort bandit
+
+# 安装预提交钩子
+pre-commit install
+pre-commit install --hook-type commit-msg
+```
+
+### 3. 退出虚拟环境
+
+```bash
+deactivate
 ```
 
 ### 运行应用程序
@@ -22,20 +50,50 @@ pip install paramiko
 python main.py
 ```
 
-### 测试
+### 运行应用程序
 ```bash
-# 运行所有测试（如果添加了测试框架）
-python -m pytest
+# 确保虚拟环境已激活
+source .venv/bin/activate
 
-# 运行特定测试文件
-python -m pytest tests/test_specific.py
-
-# 运行覆盖率测试
-python -m pytest --cov=.
+python main.py
 ```
 
-### 代码检查和格式化
+### 测试（⚠️ 必须先激活虚拟环境）
+
+**重要：运行测试前必须确保虚拟环境已激活！**
+
 ```bash
+# 1. 激活虚拟环境
+source .venv/bin/activate
+
+# 2. 运行所有测试
+python -m pytest
+
+# 3. 运行单元测试（快速，约3秒）
+TESTING=true python -m pytest tests/unit -v
+
+# 4. 运行特定测试文件
+python -m pytest tests/unit/test_client.py -v
+
+# 5. 运行覆盖率测试
+python -m pytest tests/unit --cov=. --cov-report=html
+
+# 6. 运行集成测试（需要真实SSH服务器）
+export TEST_REAL_SSH=true
+export TEST_SSH_HOST=your-host
+export TEST_SSH_USER=your-user
+export TEST_SSH_PASS=your-pass
+python -m pytest tests/integration --run-integration -v
+```
+
+### 代码检查和格式化（⚠️ 必须先激活虚拟环境）
+
+**重要：运行代码检查前必须确保虚拟环境已激活！**
+
+```bash
+# 确保虚拟环境已激活
+source .venv/bin/activate
+
 # 使用flake8进行代码检查
 flake8 .
 
@@ -44,6 +102,12 @@ black .
 
 # 使用mypy进行类型检查
 mypy .
+
+# 使用isort进行导入排序
+isort .
+
+# 使用bandit进行安全检查
+bandit -r src/
 ```
 
 ## 代码风格指南
