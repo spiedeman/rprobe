@@ -1,0 +1,135 @@
+# AGENTS.md - RemoteSSH 项目
+
+此文件包含在此代码库中工作的代理编码人员的指南和命令。
+
+## 项目概述
+
+这是一个使用paramiko库进行SSH连接和远程操作的Python SSH工具项目。
+
+## 命令
+
+### 环境设置
+```bash
+# 安装依赖项（如果requirements.txt存在）
+pip install -r requirements.txt
+
+# 如果没有requirements文件，手动安装paramiko
+pip install paramiko
+```
+
+### 运行应用程序
+```bash
+python main.py
+```
+
+### 测试
+```bash
+# 运行所有测试（如果添加了测试框架）
+python -m pytest
+
+# 运行特定测试文件
+python -m pytest tests/test_specific.py
+
+# 运行覆盖率测试
+python -m pytest --cov=.
+```
+
+### 代码检查和格式化
+```bash
+# 使用flake8进行代码检查
+flake8 .
+
+# 使用black进行格式化
+black .
+
+# 使用mypy进行类型检查
+mypy .
+```
+
+## 代码风格指南
+
+### 导入风格
+- 使用绝对导入
+- 按组导入：标准库、第三方库、本地导入
+- 将导入语句放在文件顶部
+- 使用 `import paramiko` 而不是 `from paramiko import *`
+
+### 代码格式化
+- 遵循PEP 8标准
+- 使用4个空格缩进
+- 最大行长度：88个字符（black标准）
+- 使用black进行自动格式化
+
+### 类型提示
+- 为所有函数签名添加类型提示
+- 使用Python 3.6+类型注解语法
+- 根据需要导入typing构造：`from typing import Optional, List, Dict`
+
+### 命名约定
+- 变量和函数：`snake_case`
+- 类：`PascalCase`
+- 常量：`UPPER_SNAKE_CASE`
+- 私有成员：使用下划线前缀 `_private_method`
+
+### 错误处理
+- 对SSH操作使用try-except块
+- 处理paramiko特定异常（SSHException、AuthenticationException等）
+- 适当记录错误而不暴露敏感信息
+- 始终在finally块中关闭SSH连接
+
+### 安全最佳实践
+- 绝不在源代码中硬编码凭据
+- 使用环境变量或配置文件存储SSH密钥/密码
+- 验证所有用户输入
+- 使用正确的密钥文件权限（600）
+- 考虑在适当时使用SSH代理转发
+
+### 文档
+- 为所有公共函数和类添加文档字符串
+- 使用Google风格或NumPy风格的文档字符串
+- 包含参数类型、返回类型和引发的异常
+- 为复杂逻辑添加内联注释
+
+### SSH连接模式
+```python
+import paramiko
+from typing import Optional
+
+def create_ssh_client(hostname: str, username: str, key_filename: Optional[str] = None) -> paramiko.SSHClient:
+    """创建并返回SSH客户端连接。"""
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    try:
+        client.connect(hostname=hostname, username=username, key_filename=key_filename)
+        return client
+    except paramiko.AuthenticationException:
+        # 处理身份验证错误
+        raise
+    except paramiko.SSHException as e:
+        # 处理SSH连接错误
+        raise
+```
+
+## 测试指南
+
+- 使用模拟为所有SSH操作编写单元测试
+- 使用pytest夹具设置SSH客户端
+- 在测试中模拟paramiko调用以避免实际网络连接
+- 测试错误处理路径
+- 目标代码覆盖率>80%
+
+## Git工作流
+
+- 使用约定式提交消息：`feat:`、`fix:`、`docs:`、`refactor:`等
+- 保持提交小而专注
+- 确保在提交前所有测试通过
+- 在提交前运行代码检查和格式化
+
+## 性能考虑
+
+- 尽可能重用SSH连接
+- 为多个操作实现连接池
+- 对并发SSH操作使用async/await模式（如果使用asyncssh）
+- 适当处理连接超时
+- 考虑对大文件传输使用压缩
