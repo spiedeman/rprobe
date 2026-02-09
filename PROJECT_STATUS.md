@@ -121,10 +121,48 @@ RemoteSSH/
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 1. 克隆仓库并进入目录
 
 ```bash
-pip install paramiko pyyaml pytest pytest-cov
+git clone <repository-url>
+cd RemoteSSH
+```
+
+### 2. 创建并激活虚拟环境（⚠️ 必须）
+
+```bash
+# 创建虚拟环境
+python3 -m venv .venv
+
+# 激活虚拟环境（每次开发前必须执行）
+source .venv/bin/activate  # Linux/Mac
+# 或
+.venv\Scripts\activate     # Windows
+
+# 使用快捷脚本（推荐）
+source venv.sh  # Linux/Mac
+# 或
+venv.bat        # Windows
+```
+
+### 3. 安装依赖
+
+```bash
+# 安装项目依赖（确保虚拟环境已激活）
+pip install -e .
+
+# 安装开发依赖
+pip install pytest pytest-cov black flake8 mypy pre-commit
+
+# 或使用快捷脚本安装全部依赖
+source venv.sh install
+```
+
+### 4. 验证安装
+
+```bash
+# 运行单元测试（必须在虚拟环境中）
+TESTING=true python -m pytest tests/unit -v
 ```
 
 ### 基本使用
@@ -227,6 +265,9 @@ python -m pytest tests/ --run-integration --cov=.
 
 ### 2026-02-10
 
+- ✅ **虚拟环境开发流程** - 配置venv虚拟环境，隔离项目依赖
+- ✅ **快捷激活脚本** - 创建venv.sh和venv.bat脚本，简化环境管理
+- ✅ **更新开发文档** - AGENTS.md添加虚拟环境激活指南
 - ✅ **单元测试性能优化** - 从23秒降到2.7秒（88%提升）
 - ✅ **修复慢测试** - 优化2个Shell会话测试（10s→0.08s）
 - ✅ **修复测试失败** - 添加TESTING环境变量，修复密钥文件验证测试
