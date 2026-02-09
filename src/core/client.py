@@ -11,7 +11,8 @@ SSH 客户端模块（重构版）
 import logging
 import socket
 import time
-from typing import Optional
+import uuid
+from typing import Optional, Dict, List
 
 import paramiko
 
@@ -76,7 +77,9 @@ class SSHClient:
         self._config = config
         self._use_pool = use_pool
         self._receiver = create_receiver(config)
-        self._shell_session: Optional[ShellSession] = None
+        # 支持多个 Shell 会话
+        self._shell_sessions: Dict[str, ShellSession] = {}
+        self._default_session_id: Optional[str] = None
         
         if use_pool:
             # 从全局连接池管理器获取或创建连接池
@@ -109,9 +112,8 @@ class SSHClient:
         
         注意：如果使用连接池，连接会归还给池而不是关闭。
         """
-        # 先关闭 shell 会话
-        if self._shell_session:
-            self.close_shell_session()
+        # 关闭所有 shell 会话
+        self.close_all_shell_sessions()
         
         if not self._use_pool:
             self._connection.disconnect()
@@ -126,21 +128,47 @@ class SSHClient:
     
     @property
     def shell_session_active(self) -> bool:
-        """检查 shell 会话是否活跃"""
-        return self._shell_session is not None and self._shell_session.is_active
+        """检查默认 shell 会话是否活跃（向后兼容）"""
+        if self._default_session_id:
+            session = self._shell_sessions.get(self._default_session_id)
+            return session is not None and session.is_active
+        return False
     
-    def open_shell_session(self, timeout: Optional[float] = None) -> str:
+    @property
+    def shell_sessions(self) -> List[str]:
+        """获取所有活跃的 shell 会话 ID 列表"""
+        return [
+            sid for sid, session in self._shell_sessions.items()
+            if session.is_active
+        ]
+    
+    @property
+    def shell_session_count(self) -> int:
+        """获取活跃 shell 会话数量"""
+        return len(self.shell_sessions)
+    
+    def open_shell_session(
+        self,
+        timeout: Optional[float] = None,
+        session_id: Optional[str] = None
+    ) -> str:
         """
         打开一个持久的 shell 会话
         
         Args:
             timeout: 等待 shell 就绪的超时时间（秒）
+            session_id: 会话 ID（可选，默认自动生成）
             
         Returns:
             str: 检测到的 shell 提示符
         """
-        if self.shell_session_active:
-            raise RuntimeError("Shell 会话已经存在，请先关闭当前会话")
+        # 生成会话 ID
+        if session_id is None:
+            session_id = str(uuid.uuid4())[:8]
+        
+        # 检查会话 ID 是否已存在
+        if session_id in self._shell_sessions and self._shell_sessions[session_id].is_active:
+            raise RuntimeError(f"Shell 会话 '{session_id}' 已存在，请先关闭")
         
         try:
             if self._use_pool:
@@ -148,32 +176,102 @@ class SSHClient:
                 with self._pool.get_connection() as conn:
                     channel = conn.open_channel(timeout)
                     prompt_detector = PromptDetector()
-                    self._shell_session = ShellSession(channel, self._config, prompt_detector)
-                    prompt = self._shell_session.initialize(timeout)
+                    session = ShellSession(channel, self._config, prompt_detector)
+                    prompt = session.initialize(timeout)
+                    self._shell_sessions[session_id] = session
+                    # 设置默认会话（如果还没有）
+                    if self._default_session_id is None:
+                        self._default_session_id = session_id
+                    logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
                     return prompt
             else:
                 # 直接使用连接
                 self._connection.ensure_connected()
                 channel = self._connection.open_channel(timeout)
                 prompt_detector = PromptDetector()
-                self._shell_session = ShellSession(channel, self._config, prompt_detector)
-                prompt = self._shell_session.initialize(timeout)
+                session = ShellSession(channel, self._config, prompt_detector)
+                prompt = session.initialize(timeout)
+                self._shell_sessions[session_id] = session
+                # 设置默认会话（如果还没有）
+                if self._default_session_id is None:
+                    self._default_session_id = session_id
+                logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
                 return prompt
         except Exception as e:
             # 清理资源
-            self._shell_session = None
+            if session_id in self._shell_sessions:
+                del self._shell_sessions[session_id]
             raise RuntimeError(f"打开 Shell 会话失败: {e}") from e
     
-    def close_shell_session(self) -> None:
-        """关闭当前的 shell 会话"""
-        if self._shell_session:
-            self._shell_session.close()
-            self._shell_session = None
+    def close_shell_session(self, session_id: Optional[str] = None) -> None:
+        """
+        关闭 shell 会话
+        
+        Args:
+            session_id: 会话 ID（可选，默认关闭默认会话）
+        """
+        # 如果没有指定 session_id，使用默认会话
+        if session_id is None:
+            session_id = self._default_session_id
+        
+        if session_id is None:
+            logger.warning("没有活动的 Shell 会话")
+            return
+        
+        session = self._shell_sessions.get(session_id)
+        if session:
+            session.close()
+            del self._shell_sessions[session_id]
+            logger.info(f"Shell 会话 '{session_id}' 已关闭")
+            
+            # 如果关闭的是默认会话，清除默认会话 ID
+            if session_id == self._default_session_id:
+                self._default_session_id = None
+                # 如果有其他活跃会话，将第一个设为默认
+                if self.shell_sessions:
+                    self._default_session_id = self.shell_sessions[0]
+        else:
+            logger.warning(f"Shell 会话 '{session_id}' 不存在")
+    
+    def close_all_shell_sessions(self) -> None:
+        """关闭所有 shell 会话"""
+        session_ids = list(self._shell_sessions.keys())
+        for session_id in session_ids:
+            try:
+                self.close_shell_session(session_id)
+            except Exception as e:
+                logger.warning(f"关闭会话 '{session_id}' 时出错: {e}")
+        self._default_session_id = None
+    
+    def get_shell_session(self, session_id: str) -> Optional[ShellSession]:
+        """
+        获取指定 shell 会话
+        
+        Args:
+            session_id: 会话 ID
+            
+        Returns:
+            ShellSession: 会话对象，如果不存在返回 None
+        """
+        return self._shell_sessions.get(session_id)
+    
+    def set_default_shell_session(self, session_id: str) -> None:
+        """
+        设置默认 shell 会话
+        
+        Args:
+            session_id: 会话 ID
+        """
+        if session_id not in self._shell_sessions:
+            raise RuntimeError(f"Shell 会话 '{session_id}' 不存在")
+        self._default_session_id = session_id
+        logger.info(f"默认 Shell 会话已设置为 '{session_id}'")
     
     def shell_command(
         self,
         command: str,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
+        session_id: Optional[str] = None
     ) -> CommandResult:
         """
         在持久 shell 会话中执行命令
@@ -181,15 +279,27 @@ class SSHClient:
         Args:
             command: 要执行的命令
             timeout: 命令执行超时（秒）
+            session_id: 会话 ID（可选，默认使用默认会话）
             
         Returns:
             CommandResult: 命令执行结果
         """
-        if not self.shell_session_active:
+        # 确定使用哪个会话
+        if session_id is None:
+            session_id = self._default_session_id
+        
+        if session_id is None:
             raise RuntimeError("没有活动的 Shell 会话，请先调用 open_shell_session()")
+        
+        session = self._shell_sessions.get(session_id)
+        if not session:
+            raise RuntimeError(f"Shell 会话 '{session_id}' 不存在")
+        
+        if not session.is_active:
+            raise RuntimeError(f"Shell 会话 '{session_id}' 已关闭")
 
         start_time = time.time()
-        output = self._shell_session.execute_command(command, timeout)
+        output = session.execute_command(command, timeout)
         execution_time = time.time() - start_time
         
         return CommandResult(

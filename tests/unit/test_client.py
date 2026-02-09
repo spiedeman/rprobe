@@ -21,7 +21,8 @@ class TestSSHClientInit:
         assert client._config == mock_ssh_config
         assert client._pool is None
         assert client._connection is not None
-        assert client._shell_session is None
+        assert client._shell_sessions == {}
+        assert client._default_session_id is None
         assert not client._use_pool
 
     def test_init_with_pool(self, mock_ssh_config):
@@ -31,7 +32,8 @@ class TestSSHClientInit:
         assert client._config == mock_ssh_config
         assert client._pool is not None
         assert client._connection is None
-        assert client._shell_session is None
+        assert client._shell_sessions == {}
+        assert client._default_session_id is None
         assert client._use_pool is True
 
 
@@ -181,11 +183,16 @@ class TestSSHSessions:
         
         # 初始状态
         assert client.shell_session_active is False
+        assert client.shell_session_count == 0
         
         # 模拟打开会话
-        client._shell_session = mock_session
+        client._shell_sessions["test-session"] = mock_session
+        client._default_session_id = "test-session"
         assert client.shell_session_active is True
+        assert client.shell_session_count == 1
+        assert "test-session" in client.shell_sessions
         
         # 模拟关闭会话
         mock_session.is_active = False
         assert client.shell_session_active is False
+        assert client.shell_session_count == 0

@@ -51,7 +51,7 @@ class TestOpenShellSession:
 
     @patch('paramiko.SSHClient')
     def test_open_shell_session_already_exists(self, mock_ssh_client_class, mock_ssh_config):
-        """测试会话已存在时抛出异常"""
+        """测试同一 session_id 会话已存在时抛出异常"""
         client, mock_client, mock_transport = self._setup_mock_connection(
             mock_ssh_client_class, mock_ssh_config
         )
@@ -61,12 +61,12 @@ class TestOpenShellSession:
         mock_channel.closed = False
         mock_transport.open_session.return_value = mock_channel
         
-        # 第一次打开 - 使用短超时加速测试
-        client.open_shell_session(timeout=0.01)
+        # 第一次打开指定 session_id - 使用短超时加速测试
+        client.open_shell_session(timeout=0.01, session_id="test-session")
         
-        # 第二次打开应该抛出异常
-        with pytest.raises(RuntimeError, match="Shell 会话已经存在"):
-            client.open_shell_session(timeout=0.01)
+        # 第二次使用相同的 session_id 打开应该抛出异常
+        with pytest.raises(RuntimeError, match="已存在"):
+            client.open_shell_session(timeout=0.01, session_id="test-session")
 
     @patch('paramiko.SSHClient')
     def test_open_shell_session_timeout(self, mock_ssh_client_class, mock_ssh_config):

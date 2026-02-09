@@ -81,7 +81,7 @@ class TestExceptionPaths:
             with pytest.raises(RuntimeError, match="打开 Shell 会话失败"):
                 client.open_shell_session()
         
-        assert client._shell_session is None
+        assert "session" not in client._shell_sessions
 
     @patch('paramiko.SSHClient')
     def test_shell_session_close_with_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
