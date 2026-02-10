@@ -40,16 +40,16 @@ class SmartChannelReceiver:
             config: SSH 配置，包含 recv_mode 设置
         """
         self._config = config
-        self._mode = self._select_mode()
+        self._mode: RecvMode = self._select_mode()
         self._receiver = self._create_receiver()
         logger.debug(f"SmartChannelReceiver 初始化完成，模式: {self._mode}")
     
-    def _select_mode(self) -> str:
+    def _select_mode(self) -> RecvMode:
         """
         根据配置和平台选择最优模式
         
         Returns:
-            str: 选择的接收模式
+            RecvMode: 选择的接收模式
         """
         mode = self._config.recv_mode
         
@@ -129,7 +129,7 @@ class SmartChannelReceiver:
             return self._receiver.recv_all(channel, timeout, transport)
     
     @property
-    def mode(self) -> str:
+    def mode(self) -> RecvMode:
         """获取当前使用的接收模式"""
         return self._mode
     
@@ -165,9 +165,9 @@ class SmartChannelReceiver:
         }
         
         info = mode_descriptions.get(self._mode, {}).copy()
-        info["current_mode"] = self._mode
+        info["current_mode"] = self._mode.value
         info["platform"] = sys.platform
-        info["config_mode"] = self._config.recv_mode
+        info["config_mode"] = self._config.recv_mode.value
         
         return info
 

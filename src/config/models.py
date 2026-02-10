@@ -49,7 +49,7 @@ class SSHConfig:
     command_timeout: float = 300.0
     max_output_size: int = 10 * 1024 * 1024  # 10MB
     encoding: str = "utf-8"
-    recv_mode: str = "auto"
+    recv_mode: RecvMode = RecvMode.AUTO
     recv_poll_interval: float = 0.001  # 1ms
     
     def __post_init__(self):
@@ -106,6 +106,14 @@ class SSHConfig:
         # 过滤掉无效字段
         valid_fields = {f.name for f in cls.__dataclass_fields__.values()}
         filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+        
+        # 处理 recv_mode 转换
+        if 'recv_mode' in filtered_data and isinstance(filtered_data['recv_mode'], str):
+            try:
+                filtered_data['recv_mode'] = RecvMode(filtered_data['recv_mode'].lower())
+            except ValueError:
+                filtered_data['recv_mode'] = RecvMode.AUTO
+        
         return cls(**filtered_data)
     
     def copy_with(self, **kwargs):

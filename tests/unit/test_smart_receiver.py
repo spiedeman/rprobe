@@ -141,10 +141,10 @@ class TestSmartChannelReceiverPerformanceInfo:
         
         info = receiver.get_performance_info()
         
-        assert info['current_mode'] == RecvMode.SELECT
+        assert info['current_mode'] == 'select'
         assert 'cpu_usage' in info
         assert 'latency' in info
-        assert info['config_mode'] == RecvMode.SELECT
+        assert info['config_mode'] == 'select'
     
     def test_get_performance_info_adaptive_mode(self, mock_config):
         """测试 adaptive 模式性能信息"""
@@ -153,7 +153,7 @@ class TestSmartChannelReceiverPerformanceInfo:
         
         info = receiver.get_performance_info()
         
-        assert info['current_mode'] == RecvMode.ADAPTIVE
+        assert info['current_mode'] == 'adaptive'
         assert 'cpu_usage' in info
         assert 'latency' in info
     
@@ -164,7 +164,7 @@ class TestSmartChannelReceiverPerformanceInfo:
         
         info = receiver.get_performance_info()
         
-        assert info['current_mode'] == RecvMode.ORIGINAL
+        assert info['current_mode'] == 'original'
         assert 'cpu_usage' in info
         assert 'latency' in info
     
