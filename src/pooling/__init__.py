@@ -391,19 +391,58 @@ class ConnectionPool:
         if self._health_check_thread and self._health_check_thread.is_alive():
             self._health_check_thread.join(timeout=timeout)
         
-        # 关闭所有连接
+        # 并行关闭所有连接
         with self._lock:
             all_connections = list(self._pool) + list(self._in_use)
             self._pool.clear()
             self._in_use.clear()
             
-            for pooled in all_connections:
-                try:
-                    pooled.close()
-                except Exception as e:
-                    logger.warning(f"Error closing connection: {e}")
+            # 并行关闭连接以提高性能
+            if all_connections:
+                self._close_connections_parallel(all_connections, timeout)
         
         logger.info(f"Connection pool closed for {self._config.host}")
+    
+    def _close_connections_parallel(self, connections: List[PooledConnection], timeout: float) -> None:
+        """
+        并行关闭连接
+        
+        Args:
+            connections: 需要关闭的连接列表
+            timeout: 超时时间
+        """
+        if not connections:
+            return
+        
+        # 限制并发线程数
+        max_workers = min(len(connections), 10)
+        failed_count = 0
+        
+        def close_single_connection(pooled: PooledConnection) -> None:
+            """关闭单个连接"""
+            try:
+                pooled.close()
+            except Exception as e:
+                logger.warning(f"Error closing connection: {e}")
+                raise
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有关闭任务
+            future_to_conn = {
+                executor.submit(close_single_connection, conn): conn 
+                for conn in connections
+            }
+            
+            # 等待所有任务完成，设置超时
+            for future in future_to_conn:
+                try:
+                    future.result(timeout=timeout / len(connections) if connections else timeout)
+                except Exception as e:
+                    failed_count += 1
+                    logger.warning(f"Failed to close connection: {e}")
+        
+        if failed_count > 0:
+            logger.warning(f"Failed to close {failed_count}/{len(connections)} connections")
     
     @property
     def stats(self) -> Dict:
