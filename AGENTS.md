@@ -110,6 +110,105 @@ isort .
 bandit -r src/
 ```
 
+## 开发工作流程（修改代码后必做）
+
+### 步骤1: 静态代码检查（⚠️ 必须在测试前执行）
+
+**每次修改代码后，必须先运行静态代码检查！**
+
+```bash
+# 1. 确保虚拟环境已激活
+source .venv/bin/activate
+
+# 2. 运行代码格式化（black）
+black src/ tests/ examples/
+
+# 3. 运行导入排序检查（isort）
+isort src/ tests/ examples/ --check-only --diff
+
+# 4. 运行代码风格检查（flake8）
+flake8 src/ tests/ examples/ --count --statistics
+
+# 5. 运行类型检查（mypy）- 最重要！
+mypy src/ --ignore-missing-imports
+
+# 6. 运行安全检查（bandit）
+bandit -r src/ -f json
+```
+
+**或者使用快捷脚本：**
+```bash
+# 创建快捷脚本（添加到 ~/.bashrc 或 ~/.zshrc）
+alias lint='black src/ tests/ examples/ && isort src/ tests/ examples/ && flake8 src/ tests/ examples/ && mypy src/ --ignore-missing-imports && bandit -r src/'
+
+# 使用
+lint
+```
+
+### 步骤2: 运行测试
+
+只有在静态代码检查通过后，才运行测试：
+
+```bash
+# 运行单元测试
+TESTING=true python -m pytest tests/unit -v
+
+# 运行特定测试
+TESTING=true python -m pytest tests/unit/test_client.py -v
+```
+
+### 步骤3: 提交代码
+
+```bash
+# 检查修改的文件
+git status
+
+# 添加修改的文件
+git add <modified-files>
+
+# 提交（使用约定式提交消息）
+git commit -m "type(scope): description"
+```
+
+### 代码检查检查清单
+
+修改代码后，在运行测试前必须确认：
+
+- [ ] **Black** - 代码已格式化
+- [ ] **isort** - 导入已排序
+- [ ] **Flake8** - 无代码风格错误
+- [ ] **mypy** - 无类型错误（**强制要求**）
+- [ ] **bandit** - 无安全问题
+- [ ] **测试** - 所有测试通过
+
+### 为什么先运行静态检查？
+
+1. **尽早发现问题** - 在运行测试前发现类型错误和风格问题
+2. **节省测试时间** - 避免因类型错误导致的测试失败
+3. **保持代码质量** - 确保每次提交都符合代码规范
+4. **CI/CD 要求** - GitHub Actions 会运行相同的检查
+
+### 常见问题
+
+**Q: mypy 报告 "Library stubs not installed" 错误？**
+```bash
+# 安装类型 stubs
+pip install types-paramiko types-PyYAML
+# 或者
+mypy --install-types
+```
+
+**Q: 如何忽略特定行的类型检查？**
+```python
+# type: ignore
+result = some_function()  # type: ignore
+```
+
+**Q: 如何查看详细的类型错误？**
+```bash
+mypy src/ --ignore-missing-imports --show-error-codes
+```
+
 ## 代码风格指南
 
 ### 导入风格
