@@ -35,7 +35,7 @@ from typing import Optional, Dict, List
 from dataclasses import dataclass, field
 from collections import deque
 from contextlib import contextmanager
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 
 import paramiko
 
@@ -387,9 +387,9 @@ class ConnectionPool:
 
         self._shutdown = True
         
-        # 停止健康检查线程
+        # 停止健康检查线程（使用较短的超时，不阻塞整体关闭）
         if self._health_check_thread and self._health_check_thread.is_alive():
-            self._health_check_thread.join(timeout=timeout)
+            self._health_check_thread.join(timeout=1.0)
         
         # 并行关闭所有连接
         with self._lock:
@@ -419,66 +419,35 @@ class ConnectionPool:
         failed_count = 0
         start_time = time.time()
         
-        # 计算每个连接的超时时间（平均分配总超时）
-        single_timeout = timeout / len(connections) if connections else timeout
-        single_timeout = min(single_timeout, 2.0)  # 最多2秒
-        
-        def close_single_connection(pooled: PooledConnection) -> None:
-            """关闭单个连接，带超时"""
-            import threading
-            
-            result = {"success": False, "error": None}
-            
-            def do_close():
-                try:
-                    pooled.close()
-                    result["success"] = True
-                except Exception as e:
-                    result["error"] = e
-            
-            # 在新线程中执行关闭，带超时
-            close_thread = threading.Thread(target=do_close)
-            close_thread.daemon = True
-            close_thread.start()
-            close_thread.join(timeout=single_timeout)
-            
-            if close_thread.is_alive():
-                # 超时，强制标记为非活跃
-                pooled.is_active = False
-                raise TimeoutError(f"Connection close timeout after {single_timeout}s")
-            
-            if result["error"]:
-                raise result["error"]
+        # 先标记所有连接为非活跃
+        for conn in connections:
+            conn.is_active = False
         
         # 使用线程池并行关闭
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(close_single_connection, conn): conn 
-                      for conn in connections}
+            # 直接提交 close 操作到线程池
+            futures = [executor.submit(conn.close) for conn in connections]
             
-            # 等待所有任务完成或超时
-            remaining_timeout = timeout
-            for future in list(futures.keys()):
-                elapsed = time.time() - start_time
-                if elapsed >= timeout:
-                    logger.warning(f"Overall close timeout after {elapsed:.2f}s")
-                    break
-                
+            # 等待所有任务完成，带超时
+            done, not_done = wait(futures, timeout=timeout)
+            
+            # 处理已完成的结果
+            for future in done:
                 try:
-                    # 等待剩余时间
-                    wait_time = min(remaining_timeout - elapsed, single_timeout)
-                    future.result(timeout=max(wait_time, 0.1))
-                except TimeoutError:
-                    failed_count += 1
-                    logger.warning(f"Connection close timeout")
-                    # 强制标记为非活跃
-                    futures[future].is_active = False
+                    future.result()
                 except Exception as e:
                     failed_count += 1
-                    logger.warning(f"Failed to close connection: {e}")
+                    logger.debug(f"Close operation failed: {e}")
+            
+            # 取消未完成的任务（如果有）
+            for future in not_done:
+                future.cancel()
         
         elapsed = time.time() - start_time
-        if failed_count > 0:
-            logger.warning(f"Failed to close {failed_count}/{len(connections)} connections in {elapsed:.2f}s")
+        success_count = len(connections) - failed_count - len(not_done)
+        if failed_count > 0 or not_done:
+            logger.warning(f"Closed {success_count}/{len(connections)} connections in {elapsed:.2f}s "
+                         f"({failed_count} failed, {len(not_done)} timeout)")
         else:
             logger.debug(f"Closed {len(connections)} connections in {elapsed:.2f}s")
     
