@@ -520,6 +520,8 @@ class ConnectionPool:
     def _format_uptime(self, seconds: float) -> str:
         """将秒数格式化为人类可读的 uptime 字符串
         
+        使用 divmod 优化计算，比多次除法和取模更高效。
+        
         Args:
             seconds: 秒数
             
@@ -528,21 +530,25 @@ class ConnectionPool:
         """
         if seconds < 60:
             return f"{int(seconds)}s"
-        elif seconds < 3600:
-            minutes = int(seconds // 60)
-            secs = int(seconds % 60)
+        
+        # 使用 divmod 一次性计算分钟和秒
+        minutes, secs = divmod(int(seconds), 60)
+        if minutes < 60:
             return f"{minutes}m{secs}s"
-        elif seconds < 86400:
-            hours = int(seconds // 3600)
-            minutes = int((seconds % 3600) // 60)
+        
+        # 使用 divmod 计算小时和分钟
+        hours, minutes = divmod(minutes, 60)
+        if hours < 24:
             return f"{hours}h{minutes}m"
-        else:
-            days = int(seconds // 86400)
-            hours = int((seconds % 86400) // 3600)
-            return f"{days}d{hours}h"
+        
+        # 计算天数和小时
+        days, hours = divmod(hours, 24)
+        return f"{days}d{hours}h"
 
     def _format_relative_time(self, timestamp: float) -> str:
         """将时间戳格式化为相对时间字符串
+        
+        使用 datetime 模块计算时间差，逻辑更清晰。
         
         Args:
             timestamp: 时间戳
@@ -550,18 +556,31 @@ class ConnectionPool:
         Returns:
             str: 格式如 "刚刚", "5秒前", "3分钟前", "2小时前", "1天前"
         """
-        diff = time.time() - timestamp
+        from datetime import datetime
         
-        if diff < 5:
+        now = datetime.now()
+        past = datetime.fromtimestamp(timestamp)
+        diff = now - past
+        
+        # 使用 total_seconds() 获取完整的时间差（包括天数转换的秒数）
+        total_seconds = int(diff.total_seconds())
+        
+        if total_seconds < 5:
             return "刚刚"
-        elif diff < 60:
-            return f"{int(diff)}秒前"
-        elif diff < 3600:
-            return f"{int(diff // 60)}分钟前"
-        elif diff < 86400:
-            return f"{int(diff // 3600)}小时前"
+        elif total_seconds < 60:
+            return f"{total_seconds}秒前"
+        elif total_seconds < 3600:
+            # 使用 divmod 计算分钟
+            minutes, _ = divmod(total_seconds, 60)
+            return f"{minutes}分钟前"
+        elif total_seconds < 86400:
+            # 使用 divmod 计算小时
+            hours, _ = divmod(total_seconds, 3600)
+            return f"{hours}小时前"
         else:
-            return f"{int(diff // 86400)}天前"
+            # 使用 divmod 计算天数
+            days, _ = divmod(total_seconds, 86400)
+            return f"{days}天前"
 
     @property
     def stats(self) -> Dict:
