@@ -635,7 +635,14 @@ class TestAdditionalCoverage:
         )
         
         mock_channel = Mock()
-        mock_channel.recv_ready.side_effect = [True, False]
+        # 使用函数代替列表，避免 StopIteration
+        recv_call_count = [0]
+        def recv_ready_side_effect():
+            recv_call_count[0] += 1
+            # 前几次返回 True，之后返回 False
+            return recv_call_count[0] <= 5
+        
+        mock_channel.recv_ready.side_effect = recv_ready_side_effect
         mock_channel.recv.return_value = b"output"
         mock_channel.recv_stderr_ready.return_value = False
         mock_channel.exit_status_ready.return_value = True
