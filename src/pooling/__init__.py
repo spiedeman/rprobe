@@ -409,7 +409,7 @@ class ConnectionPool:
         
         Args:
             connections: 需要关闭的连接列表
-            timeout: 超时时间
+            timeout: 总超时时间
         """
         if not connections:
             return
@@ -419,40 +419,68 @@ class ConnectionPool:
         failed_count = 0
         start_time = time.time()
         
-        def close_single_connection(pooled: PooledConnection) -> None:
-            """关闭单个连接"""
-            try:
-                pooled.close()
-            except Exception as e:
-                logger.warning(f"Error closing connection: {e}")
-                raise
+        # 计算每个连接的超时时间（平均分配总超时）
+        single_timeout = timeout / len(connections) if connections else timeout
+        single_timeout = min(single_timeout, 2.0)  # 最多2秒
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 提交所有关闭任务
-            futures = [executor.submit(close_single_connection, conn) for conn in connections]
+        def close_single_connection(pooled: PooledConnection) -> None:
+            """关闭单个连接，带超时"""
+            import threading
             
-            # 使用 as_completed 优先处理已完成的任务，不阻塞等待超时
-            from concurrent.futures import as_completed
+            result = {"success": False, "error": None}
             
-            for future in as_completed(futures, timeout=timeout):
+            def do_close():
                 try:
-                    future.result()
+                    pooled.close()
+                    result["success"] = True
+                except Exception as e:
+                    result["error"] = e
+            
+            # 在新线程中执行关闭，带超时
+            close_thread = threading.Thread(target=do_close)
+            close_thread.daemon = True
+            close_thread.start()
+            close_thread.join(timeout=single_timeout)
+            
+            if close_thread.is_alive():
+                # 超时，强制标记为非活跃
+                pooled.is_active = False
+                raise TimeoutError(f"Connection close timeout after {single_timeout}s")
+            
+            if result["error"]:
+                raise result["error"]
+        
+        # 使用线程池并行关闭
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(close_single_connection, conn): conn 
+                      for conn in connections}
+            
+            # 等待所有任务完成或超时
+            remaining_timeout = timeout
+            for future in list(futures.keys()):
+                elapsed = time.time() - start_time
+                if elapsed >= timeout:
+                    logger.warning(f"Overall close timeout after {elapsed:.2f}s")
+                    break
+                
+                try:
+                    # 等待剩余时间
+                    wait_time = min(remaining_timeout - elapsed, single_timeout)
+                    future.result(timeout=max(wait_time, 0.1))
+                except TimeoutError:
+                    failed_count += 1
+                    logger.warning(f"Connection close timeout")
+                    # 强制标记为非活跃
+                    futures[future].is_active = False
                 except Exception as e:
                     failed_count += 1
                     logger.warning(f"Failed to close connection: {e}")
-                
-                # 检查是否已超时，如果是则取消剩余任务
-                if time.time() - start_time >= timeout:
-                    logger.warning(f"Close operation timed out after {timeout}s")
-                    break
-            
-            # 取消未完成的任务
-            for future in futures:
-                if not future.done():
-                    future.cancel()
         
+        elapsed = time.time() - start_time
         if failed_count > 0:
-            logger.warning(f"Failed to close {failed_count}/{len(connections)} connections")
+            logger.warning(f"Failed to close {failed_count}/{len(connections)} connections in {elapsed:.2f}s")
+        else:
+            logger.debug(f"Closed {len(connections)} connections in {elapsed:.2f}s")
     
     @property
     def stats(self) -> Dict:
