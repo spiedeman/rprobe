@@ -417,6 +417,7 @@ class ConnectionPool:
         # 限制并发线程数
         max_workers = min(len(connections), 10)
         failed_count = 0
+        start_time = time.time()
         
         def close_single_connection(pooled: PooledConnection) -> None:
             """关闭单个连接"""
@@ -428,18 +429,27 @@ class ConnectionPool:
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # 提交所有关闭任务
-            future_to_conn = {
-                executor.submit(close_single_connection, conn): conn 
-                for conn in connections
-            }
+            futures = [executor.submit(close_single_connection, conn) for conn in connections]
             
-            # 等待所有任务完成，设置超时
-            for future in future_to_conn:
+            # 使用 as_completed 优先处理已完成的任务，不阻塞等待超时
+            from concurrent.futures import as_completed
+            
+            for future in as_completed(futures, timeout=timeout):
                 try:
-                    future.result(timeout=timeout / len(connections) if connections else timeout)
+                    future.result()
                 except Exception as e:
                     failed_count += 1
                     logger.warning(f"Failed to close connection: {e}")
+                
+                # 检查是否已超时，如果是则取消剩余任务
+                if time.time() - start_time >= timeout:
+                    logger.warning(f"Close operation timed out after {timeout}s")
+                    break
+            
+            # 取消未完成的任务
+            for future in futures:
+                if not future.done():
+                    future.cancel()
         
         if failed_count > 0:
             logger.warning(f"Failed to close {failed_count}/{len(connections)} connections")
