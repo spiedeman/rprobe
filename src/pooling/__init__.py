@@ -136,6 +136,18 @@ class ConnectionPool:
             "closed": 0,
             "expired": 0,
             "failed": 0,
+            "returned": 0,  # 归还到连接池的次数
+            # 初始化统计
+            "init_succeeded": 0,
+            "init_failed": 0,
+            # 健康检查统计
+            "health_checks": 0,
+            "health_check_passed": 0,
+            "health_check_failed": 0,
+            # 关闭统计
+            "closed_during_shutdown": 0,
+            # 峰值使用
+            "peak_in_use": 0,
             # 等待统计
             "waits": 0,
             "total_wait_time": 0.0,
@@ -146,6 +158,8 @@ class ConnectionPool:
         # 性能统计（使用 deque 限制历史记录大小）
         self._acquire_times: deque = deque(maxlen=100)  # 最近100次获取时间
         self._wait_times: deque = deque(maxlen=100)     # 最近100次等待时间
+        # 连接生命周期跟踪
+        self._connection_lifetimes: deque = deque(maxlen=100)  # 最近100个连接的生命周期
         
         # 健康检查线程
         self._shutdown = False
@@ -214,6 +228,10 @@ class ConnectionPool:
         # 将成功创建的连接加入连接池
         for conn in successful_connections:
             self._pool.append(conn)
+        
+        # 记录初始化统计
+        self._stats["init_succeeded"] += len(successful_connections)
+        self._stats["init_failed"] += failed_count
         
         # 如果所有连接都创建失败，记录错误
         if len(successful_connections) == 0 and self._min_size > 0:
@@ -309,6 +327,11 @@ class ConnectionPool:
                         self._stats["reused"] += 1
                         self._stats["last_activity"] = time.time()
 
+                        # 更新峰值使用
+                        current_in_use = len(self._in_use)
+                        if current_in_use > self._stats["peak_in_use"]:
+                            self._stats["peak_in_use"] = current_in_use
+
                         # 记录获取时间
                         acquire_time = time.time() - start_time
                         self._acquire_times.append(acquire_time)
@@ -335,6 +358,11 @@ class ConnectionPool:
                         pooled.mark_used()
                         self._in_use.append(pooled)
                         self._stats["last_activity"] = time.time()
+
+                        # 更新峰值使用
+                        current_in_use = len(self._in_use)
+                        if current_in_use > self._stats["peak_in_use"]:
+                            self._stats["peak_in_use"] = current_in_use
 
                         # 记录获取时间
                         acquire_time = time.time() - start_time
@@ -375,6 +403,8 @@ class ConnectionPool:
             if pooled.is_healthy() and not pooled.is_expired(self._max_idle, self._max_age):
                 # 连接健康，放回池中
                 self._pool.append(pooled)
+                self._stats["returned"] += 1
+                self._stats["last_activity"] = time.time()
                 logger.debug(
                     f"Returned connection to pool for {self._config.host} (pool_size={len(self._pool)})"
                 )
@@ -382,6 +412,10 @@ class ConnectionPool:
                 # 连接不健康或过期，关闭
                 pooled.close()
                 self._stats["closed"] += 1
+                self._stats["last_activity"] = time.time()
+                # 记录连接生命周期
+                lifetime = time.time() - pooled.created_at
+                self._connection_lifetimes.append(lifetime)
             
             # 通知等待的线程
             self._condition.notify()
@@ -415,10 +449,16 @@ class ConnectionPool:
             kept = []
             
             for pooled in self._pool:
+                self._stats["health_checks"] += 1
                 if pooled.is_expired(self._max_idle, self._max_age) or not pooled.is_healthy():
                     expired.append(pooled)
+                    self._stats["health_check_failed"] += 1
+                    # 记录连接生命周期
+                    lifetime = time.time() - pooled.created_at
+                    self._connection_lifetimes.append(lifetime)
                 else:
                     kept.append(pooled)
+                    self._stats["health_check_passed"] += 1
             
             self._pool = deque(kept)
             
@@ -460,12 +500,14 @@ class ConnectionPool:
         # 并行关闭所有连接
         with self._lock:
             all_connections = list(self._pool) + list(self._in_use)
+            connection_count = len(all_connections)
             self._pool.clear()
             self._in_use.clear()
             
             # 并行关闭连接以提高性能
             if all_connections:
                 self._close_connections_parallel(all_connections, timeout)
+                self._stats["closed_during_shutdown"] += connection_count
         
         logger.info(f"Connection pool closed for {self._config.host}")
     
@@ -588,11 +630,16 @@ class ConnectionPool:
 
         Returns:
             Dict 包含以下信息:
-            - 连接计数: created, reused, closed, expired, failed
+            - 基础计数: created, reused, returned, closed, expired, failed
+            - 初始化统计: init_succeeded, init_failed, init_success_rate
+            - 健康检查: health_checks, health_check_passed, health_check_failed, health_check_rate
+            - 关闭统计: closed_during_shutdown
+            - 峰值使用: peak_in_use
             - 当前状态: pool_size, in_use, total, max_size
+            - 使用率: utilization_rate, pool_usage_rate, reuse_rate
             - 等待统计: waits, avg_wait_time, total_wait_time
-            - 性能指标: avg_acquire_time, max_acquire_time
-            - 使用率: utilization_rate, pool_usage_rate
+            - 性能指标: avg_acquire_time, max_acquire_time, acquire_count
+            - 生命周期: avg_lifetime
             - 时间戳: created_at, last_activity, uptime
         """
         if self._closed:
@@ -634,6 +681,21 @@ class ConnectionPool:
             created_at_readable = datetime.fromtimestamp(self._stats["created_at"]).strftime("%Y-%m-%d %H:%M:%S")
             last_activity_readable = self._format_relative_time(self._stats["last_activity"])
 
+            # 计算派生指标
+            # 初始化成功率
+            init_attempts = self._stats["init_succeeded"] + self._stats["init_failed"]
+            init_success_rate = (self._stats["init_succeeded"] / init_attempts * 100) if init_attempts > 0 else 0.0
+
+            # 健康检查通过率
+            health_check_rate = (self._stats["health_check_passed"] / self._stats["health_checks"] * 100) if self._stats["health_checks"] > 0 else 0.0
+
+            # 复用率
+            total_acquired = self._stats["created"] + self._stats["reused"]
+            reuse_rate = (self._stats["reused"] / total_acquired * 100) if total_acquired > 0 else 0.0
+
+            # 平均连接生命周期
+            avg_lifetime = sum(self._connection_lifetimes) / len(self._connection_lifetimes) if self._connection_lifetimes else 0.0
+
             return {
                 # 基础统计
                 **self._stats,
@@ -644,6 +706,11 @@ class ConnectionPool:
                 # 使用率
                 "utilization_rate": round(utilization_rate, 2),  # 使用中连接占比
                 "pool_usage_rate": round(pool_usage_rate, 2),    # 总连接占比
+                # 派生指标
+                "init_success_rate": round(init_success_rate, 2),  # 初始化成功率
+                "health_check_rate": round(health_check_rate, 2),  # 健康检查通过率
+                "reuse_rate": round(reuse_rate, 2),  # 复用率
+                "avg_lifetime": round(avg_lifetime, 2),  # 平均连接生命周期（秒）
                 # 等待统计
                 "avg_wait_time": round(avg_wait_time, 3),
                 "avg_wait_time_recent": round(avg_wait_time_recent, 3),

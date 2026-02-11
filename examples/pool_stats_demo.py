@@ -103,6 +103,13 @@ def demo_pool_stats():
         print(f"   - 创建时间: {stats['created_at']}")
         print(f"   - 最后活动: {stats['last_activity']}")
 
+        print(f"\n   派生指标:")
+        print(f"   - 初始化成功率: {stats.get('init_success_rate', 0)}%")
+        print(f"   - 健康检查通过率: {stats.get('health_check_rate', 0)}%")
+        print(f"   - 连接复用率: {stats.get('reuse_rate', 0)}%")
+        print(f"   - 平均连接生命周期: {stats.get('avg_lifetime', 0):.2f}s")
+        print(f"   - 峰值并发连接: {stats.get('peak_in_use', 0)}")
+
         # 关闭连接池
         print("\n6. 关闭连接池...")
         pool.close()
