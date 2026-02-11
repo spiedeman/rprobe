@@ -139,6 +139,7 @@ class ConnectionPool:
         
         # 健康检查线程
         self._shutdown = False
+        self._closed = False
         self._health_check_thread: Optional[threading.Thread] = None
         if health_check_interval > 0:
             self._health_check_thread = threading.Thread(
@@ -253,7 +254,11 @@ class ConnectionPool:
         Raises:
             PoolExhaustedError: 连接池耗尽
             PoolTimeoutError: 获取连接超时
+            RuntimeError: 连接池已关闭
         """
+        if self._closed:
+            raise RuntimeError("Connection pool has been closed. Please create a new instance.")
+        
         pooled_conn = self._acquire(timeout)
         try:
             yield pooled_conn.connection
@@ -269,7 +274,13 @@ class ConnectionPool:
             
         Returns:
             PooledConnection: 池化连接
+            
+        Raises:
+            RuntimeError: 连接池已关闭
         """
+        if self._closed:
+            raise RuntimeError("Connection pool has been closed. Please create a new instance.")
+        
         timeout = timeout or self._acquire_timeout
         deadline = time.time() + timeout
         
@@ -380,16 +391,23 @@ class ConnectionPool:
         """
         关闭连接池
         
+        关闭后此连接池实例不能再被使用。如需新的连接池，请创建新实例。
+        
         Args:
             timeout: 关闭超时时间
         """
         logger.info(f"Closing connection pool for {self._config.host}")
-
+        
+        # 标记为已关闭，防止重用
+        self._closed = True
         self._shutdown = True
         
         # 停止健康检查线程（使用较短的超时，不阻塞整体关闭）
         if self._health_check_thread and self._health_check_thread.is_alive():
-            self._health_check_thread.join(timeout=1.0)
+            self._health_check_thread.join(timeout=0.5)
+            # 清理线程引用
+            if not self._health_check_thread.is_alive():
+                self._health_check_thread = None
         
         # 并行关闭所有连接
         with self._lock:
@@ -454,6 +472,16 @@ class ConnectionPool:
     @property
     def stats(self) -> Dict:
         """获取连接池统计信息"""
+        if self._closed:
+            return {
+                **self._stats,
+                "pool_size": 0,
+                "in_use": 0,
+                "total": 0,
+                "max_size": self._max_size,
+                "closed": True
+            }
+        
         with self._lock:
             return {
                 **self._stats,
