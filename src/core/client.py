@@ -112,12 +112,16 @@ class SSHClient:
         """
         断开 SSH 连接
 
-        注意：如果使用连接池，连接会归还给池而不是关闭。
+        注意：如果使用连接池，会关闭整个连接池。
         """
         # 关闭所有 shell 会话
         self.close_all_shell_sessions()
 
-        if not self._use_pool:
+        if self._use_pool and self._pool:
+            # 关闭连接池
+            self._pool.close()
+            self._pool = None
+        elif self._connection:
             self._connection.disconnect()
 
     @property
