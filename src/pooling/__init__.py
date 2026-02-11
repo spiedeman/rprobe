@@ -517,6 +517,52 @@ class ConnectionPool:
         else:
             logger.debug(f"Closed {len(connections)} connections in {elapsed:.2f}s")
     
+    def _format_uptime(self, seconds: float) -> str:
+        """将秒数格式化为人类可读的 uptime 字符串
+        
+        Args:
+            seconds: 秒数
+            
+        Returns:
+            str: 格式如 "2h15m30s" 或 "5m20s" 或 "30s"
+        """
+        if seconds < 60:
+            return f"{int(seconds)}s"
+        elif seconds < 3600:
+            minutes = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{minutes}m{secs}s"
+        elif seconds < 86400:
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            return f"{hours}h{minutes}m"
+        else:
+            days = int(seconds // 86400)
+            hours = int((seconds % 86400) // 3600)
+            return f"{days}d{hours}h"
+
+    def _format_relative_time(self, timestamp: float) -> str:
+        """将时间戳格式化为相对时间字符串
+        
+        Args:
+            timestamp: 时间戳
+            
+        Returns:
+            str: 格式如 "刚刚", "5秒前", "3分钟前", "2小时前", "1天前"
+        """
+        diff = time.time() - timestamp
+        
+        if diff < 5:
+            return "刚刚"
+        elif diff < 60:
+            return f"{int(diff)}秒前"
+        elif diff < 3600:
+            return f"{int(diff // 60)}分钟前"
+        elif diff < 86400:
+            return f"{int(diff // 3600)}小时前"
+        else:
+            return f"{int(diff // 86400)}天前"
+
     @property
     def stats(self) -> Dict:
         """获取连接池统计信息
@@ -560,8 +606,14 @@ class ConnectionPool:
             # 计算最近等待时间统计
             avg_wait_time_recent = sum(self._wait_times) / len(self._wait_times) if self._wait_times else 0.0
 
-            # 运行时间
-            uptime = time.time() - self._stats["created_at"]
+            # 运行时间（秒数和可读格式）
+            uptime_seconds = time.time() - self._stats["created_at"]
+            uptime_readable = self._format_uptime(uptime_seconds)
+
+            # 格式化时间戳
+            from datetime import datetime
+            created_at_readable = datetime.fromtimestamp(self._stats["created_at"]).strftime("%Y-%m-%d %H:%M:%S")
+            last_activity_readable = self._format_relative_time(self._stats["last_activity"])
 
             return {
                 # 基础统计
@@ -580,8 +632,11 @@ class ConnectionPool:
                 "avg_acquire_time": round(avg_acquire_time, 3),
                 "max_acquire_time": round(max_acquire_time, 3),
                 "acquire_count": len(self._acquire_times),
-                # 时间
-                "uptime": round(uptime, 1),
+                # 时间（人类可读格式）
+                "uptime": uptime_readable,  # 如 "2h15m30s"
+                "uptime_seconds": round(uptime_seconds, 1),  # 原始秒数
+                "created_at": created_at_readable,  # 如 "2024-01-20 14:30:25"
+                "last_activity": last_activity_readable,  # 如 "5分钟前"
             }
     
     def __enter__(self):

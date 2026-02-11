@@ -98,7 +98,9 @@ def demo_pool_stats():
         print(f"   - 获取次数: {stats['acquire_count']}")
 
         print(f"\n   时间信息:")
-        print(f"   - 运行时间: {stats['uptime']:.1f}s")
+        print(f"   - 运行时间: {stats['uptime']}")
+        print(f"   - 运行时间(秒): {stats['uptime_seconds']:.1f}s")
+        print(f"   - 创建时间: {stats['created_at']}")
         print(f"   - 最后活动: {stats['last_activity']}")
 
         # 关闭连接池
