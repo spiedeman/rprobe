@@ -265,6 +265,12 @@ python -m pytest tests/ --run-integration --cov=.
 
 ### 2026-02-10
 
+- ✅ **开发流程优化** - 调整开发流程，增加静态代码检查步骤
+  - 修改 AGENTS.md，添加详细的开发工作流程章节
+  - 明确要求：修改代码 → 静态检查 → 运行测试 → 提交代码
+  - 添加静态代码检查清单和常见问题解答
+  - 更新 pre-commit 配置，添加 mypy 类型检查 hook
+  - 加强 CI/CD 代码质量检查（isort、bandit、mypy 强制）
 - ✅ **连接池并行关闭** - 退出时并行关闭所有连接
   - 使用 ThreadPoolExecutor 实现并发关闭
   - 最大并发数限制为 10
