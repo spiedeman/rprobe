@@ -275,6 +275,8 @@ python -m pytest tests/ --run-integration --cov=.
   - 使用 ThreadPoolExecutor 实现并发关闭
   - 最大并发数限制为 10
   - 支持超时控制和异常处理
+  - **优化**: 使用 `as_completed` 优先处理已完成任务，超时后快速退出
+  - **优化**: 取消未完成任务，避免资源浪费
   - 添加 5 个单元测试验证功能
   - 性能提升: 10 个连接从串行 1000ms 减少到 ~100ms
 - ✅ **多 Shell 会话** - 连接池支持多个并发的 Shell 会话
