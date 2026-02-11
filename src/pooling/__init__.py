@@ -358,7 +358,14 @@ class ConnectionPool:
         """
         while not self._shutdown:
             try:
-                time.sleep(interval)
+                # 使用条件变量的 wait 替代 sleep，可被提前唤醒
+                with self._condition:
+                    self._condition.wait(timeout=interval)
+                
+                # 检查是否需要退出
+                if self._shutdown:
+                    break
+                    
                 self._cleanup_expired()
             except Exception as e:
                 logger.error(f"Error in health check loop: {e}")
@@ -402,9 +409,13 @@ class ConnectionPool:
         self._closed = True
         self._shutdown = True
         
-        # 停止健康检查线程（使用较短的超时，不阻塞整体关闭）
+        # 唤醒健康检查线程，让它立即退出（通过条件变量）
+        with self._condition:
+            self._condition.notify_all()
+        
+        # 等待健康检查线程退出（极短超时，因为线程已被唤醒）
         if self._health_check_thread and self._health_check_thread.is_alive():
-            self._health_check_thread.join(timeout=0.5)
+            self._health_check_thread.join(timeout=0.1)
             # 清理线程引用
             if not self._health_check_thread.is_alive():
                 self._health_check_thread = None
