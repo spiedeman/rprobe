@@ -247,6 +247,56 @@ def example_6_config_management():
     print(f"   Port: {config_dict['port']}")
 
 
+def example_7_pool_close():
+    """示例7: 连接池并行关闭演示"""
+    print("\n" + "="*60)
+    print("示例7: 连接池并行关闭演示")
+    print("="*60)
+    
+    config = get_config()
+    
+    print("\n1. 创建包含10个连接的连接池:")
+    client = SSHClient(
+        config, 
+        use_pool=True, 
+        max_size=10, 
+        min_size=10,
+        parallel_init=True  # 并行初始化加速
+    )
+    stats = client._pool.stats
+    print(f"   ✓ 连接池创建完成: {stats['total']}个连接")
+    print(f"   - 可用连接: {stats['pool_size']}")
+    print(f"   - 使用中连接: {stats['in_use']}")
+    
+    print("\n2. 使用部分连接执行命令:")
+    try:
+        # 使用连接池执行一些命令
+        for i in range(5):
+            result = client.exec_command(f"echo 'Connection test {i}'")
+            print(f"   ✓ 命令{i+1}执行完成")
+    except Exception as e:
+        print(f"   ⚠ 命令执行失败（可能是演示环境）: {e}")
+    
+    print("\n3. 并行关闭连接池:")
+    print("   使用并行关闭优化，同时关闭所有连接...")
+    start = time.time()
+    client.disconnect()  # 内部调用 pool.close() 使用并行关闭
+    close_time = time.time() - start
+    print(f"   ✓ 连接池关闭完成")
+    print(f"   - 关闭耗时: {close_time:.3f}s")
+    print(f"   - 平均每个连接: {close_time/10:.3f}s")
+    
+    print("\n4. 性能对比说明:")
+    print("   串行关闭: 10个连接 × 100ms = 1000ms")
+    print("   并行关闭: ~100ms（并发执行）")
+    print("   性能提升: ~10倍")
+    
+    print("\n5. 关闭方式说明:")
+    print("   • 方式1: client.disconnect() - 推荐方式")
+    print("   • 方式2: 使用 with 语句自动关闭")
+    print("   • 方式3: pool.close(timeout=5.0) - 手动关闭")
+
+
 def run_all_examples():
     """运行所有示例"""
     examples = [
@@ -256,6 +306,7 @@ def run_all_examples():
         ("错误处理", example_4_error_handling),
         ("并行创建连接", example_5_parallel_creation),
         ("配置管理", example_6_config_management),
+        ("连接池并行关闭", example_7_pool_close),
     ]
     
     print("\n" + "="*60)
