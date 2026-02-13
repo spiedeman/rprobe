@@ -29,7 +29,7 @@ __author__ = "RemoteSSH Team"
 from src.config import SSHConfig, ConfigManager, load_config
 
 # 核心组件
-from src.core import SSHClient, ConnectionManager, CommandResult
+from src.core import SSHClient, ConnectionManager, MultiSessionManager, SessionInfo, CommandResult
 
 # 会话管理
 from src.session import ShellSession
@@ -72,6 +72,8 @@ __all__ = [
     # 核心
     "SSHClient",
     "ConnectionManager",
+    "MultiSessionManager",
+    "SessionInfo",
     "CommandResult",
     
     # 会话

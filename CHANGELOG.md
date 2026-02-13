@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 连接池统计人类可读格式（ms/s/m/h/d）
+- 连接池关闭后复用和重置功能
+- PoolManager 增强（create_pool, close_pool, get_pool, remove_pool, list_pools）
+- 连接池连接管理（关闭特定ID、批量关闭、空闲关闭、条件过滤）
+- 多会话管理器（MultiSessionManager）支持单连接多Shell
+- 架构对比文档和示例代码
+- 64个新增单元测试
+
 ## [1.1.0] - 2026-02-10
 
 ### Added
