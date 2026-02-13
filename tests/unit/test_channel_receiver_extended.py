@@ -210,7 +210,7 @@ class TestRecvAllExtended:
         mock_channel = Mock()
         mock_channel.recv_ready.return_value = False
         mock_channel.recv_stderr_ready.return_value = False
-        mock_channel.exit_status_ready.return_value = False
+        mock_channel.exit_status_ready = False
         mock_channel.closed = False
 
         with pytest.raises(TimeoutError):

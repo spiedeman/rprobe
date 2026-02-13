@@ -21,7 +21,7 @@ class TestMultiSessionManagerCreate:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -54,7 +54,7 @@ class TestMultiSessionManagerCreate:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -85,7 +85,7 @@ class TestMultiSessionManagerCreate:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -120,7 +120,7 @@ class TestMultiSessionManagerCreate:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -159,7 +159,7 @@ class TestMultiSessionManagerGet:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -191,7 +191,7 @@ class TestMultiSessionManagerGet:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class:
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class:
             mock_client = MagicMock()
             mock_transport = MagicMock()
             mock_client.get_transport.return_value = mock_transport
@@ -219,7 +219,7 @@ class TestMultiSessionManagerClose:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"), \
              patch.object(ShellSession, 'close', return_value=None):
@@ -255,7 +255,7 @@ class TestMultiSessionManagerClose:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class:
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class:
             mock_client = MagicMock()
             mock_transport = MagicMock()
             mock_client.get_transport.return_value = mock_transport
@@ -279,7 +279,7 @@ class TestMultiSessionManagerClose:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"), \
              patch.object(ShellSession, 'close', return_value=None):
@@ -318,7 +318,7 @@ class TestMultiSessionManagerInfo:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -355,7 +355,7 @@ class TestMultiSessionManagerInfo:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"):
             
@@ -395,7 +395,7 @@ class TestMultiSessionManagerActiveCount:
             password="test",
         )
         
-        with patch('paramiko.SSHClient') as mock_client_class, \
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_client_class, \
              patch.object(ShellSession, '__init__', return_value=None), \
              patch.object(ShellSession, 'initialize', return_value="$"), \
              patch.object(ShellSession, 'close', return_value=None):

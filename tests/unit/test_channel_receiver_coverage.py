@@ -357,9 +357,8 @@ class TestChannelReceiverLogging:
         # 确保走 channel.closed 分支
         mock_channel.recv_ready.return_value = False
         mock_channel.recv_stderr_ready.return_value = False
-        # exit_status_ready 先 False 让 exit_code 保持 -1，进入 closed 分支
-        mock_channel.exit_status_ready.side_effect = [False, True]
-        mock_channel.recv_exit_status.return_value = 0
+        # exit_status_ready 设置为 False，让 exit_code 保持 -1，进入 closed 分支
+        mock_channel.exit_status_ready = False
         mock_channel.closed = True
         
         with caplog.at_level("DEBUG"):

@@ -9,7 +9,9 @@ import sys
 import time
 from typing import Optional, Tuple
 
-import paramiko
+# 从后端导入抽象类型和异常
+from src.backends.base import Channel, Transport
+from src.backends import ConnectionError
 
 from src.config.models import SSHConfig
 
@@ -33,13 +35,13 @@ class OptimizedChannelDataReceiver:
     
     def recv_all_optimized(
         self,
-        channel: paramiko.Channel,
+        channel: Channel,
         timeout: Optional[float] = None,
-        transport: Optional[paramiko.Transport] = None
+        transport: Optional[Transport] = None
     ) -> Tuple[str, str, int]:
         """
         优化的数据接收方法
-        
+
         使用 select 实现高效的 I/O 多路复用，大幅降低 CPU 占用
         """
         timeout = timeout or self._config.command_timeout
@@ -89,7 +91,7 @@ class OptimizedChannelDataReceiver:
                         pass
                 
                 # 检查退出状态（不频繁检查，每 100ms 一次）
-                if exit_code == -1 and channel.exit_status_ready():
+                if exit_code == -1 and channel.exit_status_ready:
                     exit_code = channel.recv_exit_status()
                     logger.debug(f"收到退出码: {exit_code}")
                 
@@ -156,9 +158,9 @@ class AdaptivePollingReceiver:
     
     def recv_all(
         self,
-        channel: paramiko.Channel,
+        channel: Channel,
         timeout: Optional[float] = None,
-        transport: Optional[paramiko.Transport] = None
+        transport: Optional[Transport] = None
     ) -> Tuple[str, str, int]:
         """
         使用自适应轮询策略接收数据
@@ -241,7 +243,7 @@ class AdaptivePollingReceiver:
                 raise ConnectionError(f"网络连接错误: {e}") from e
             
             # 检查退出状态
-            if exit_code == -1 and channel.exit_status_ready():
+            if exit_code == -1 and channel.exit_status_ready:
                 exit_code = channel.recv_exit_status()
                 logger.debug(f"收到退出码: {exit_code}")
             
@@ -272,14 +274,14 @@ class AdaptivePollingReceiver:
                         pass
                 
                 # 获取 exit_code
-                if exit_code == -1 and channel.exit_status_ready():
+                if exit_code == -1 and channel.exit_status_ready:
                     exit_code = channel.recv_exit_status()
                 logger.debug("Channel 被远程关闭，数据接收完毕")
                 break
             
             # 长时间无数据活动检查
             if time.time() - last_activity_time > 1.0:
-                if channel.exit_status_ready():
+                if channel.exit_status_ready:
                     # 再尝试读取一次
                     try:
                         if channel.recv_ready():

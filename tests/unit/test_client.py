@@ -5,7 +5,8 @@ import socket
 from unittest.mock import Mock, patch, MagicMock
 
 import pytest
-import paramiko
+# import paramiko  # 已迁移到后端抽象层
+from src.backends import AuthenticationError, SSHException, ConnectionError
 
 from src import SSHClient
 from src.config.models import SSHConfig
@@ -40,7 +41,7 @@ class TestSSHClientInit:
 class TestSSHClientConnection:
     """测试 SSHClient 连接管理"""
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_success(self, mock_ssh_client_class, mock_ssh_config):
         """测试成功连接"""
         mock_client = Mock()
@@ -56,34 +57,38 @@ class TestSSHClientConnection:
         mock_client.connect.assert_called_once()
         mock_client.set_missing_host_key_policy.assert_called_once()
 
-    @patch('src.core.connection.paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_authentication_failure(self, mock_ssh_client_class, mock_ssh_config):
         """测试认证失败"""
+        from src.backends.paramiko_backend import paramiko
+
         mock_client = Mock()
         mock_client.connect.side_effect = paramiko.AuthenticationException("Auth failed")
         mock_ssh_client_class.return_value = mock_client
-        
+
         client = SSHClient(mock_ssh_config, use_pool=False)
-        
-        with pytest.raises(paramiko.AuthenticationException):
+
+        with pytest.raises(AuthenticationError):
             client.connect()
-        
+
         # 认证失败时连接应该断开
         assert client.is_connected is False
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_ssh_exception(self, mock_ssh_client_class, mock_ssh_config):
         """测试 SSH 连接异常"""
+        from src.backends.paramiko_backend import paramiko
+
         mock_client = Mock()
         mock_client.connect.side_effect = paramiko.SSHException("Connection failed")
         mock_ssh_client_class.return_value = mock_client
-        
+
         client = SSHClient(mock_ssh_config)
-        
-        with pytest.raises(paramiko.SSHException):
+
+        with pytest.raises(SSHException):
             client.connect()
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_already_connected(self, mock_ssh_client_class, mock_ssh_config):
         """测试已连接时不再重复连接"""
         mock_client = Mock()
@@ -99,7 +104,7 @@ class TestSSHClientConnection:
         # 应该只调用一次 connect
         mock_client.connect.assert_called_once()
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_disconnect(self, mock_ssh_client_class, mock_ssh_config):
         """测试断开连接"""
         mock_client = Mock()
@@ -120,7 +125,7 @@ class TestSSHClientConnection:
         client = SSHClient(mock_ssh_config)
         assert client.is_connected is False
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_is_connected_checks_transport(self, mock_ssh_client_class, mock_ssh_config):
         """测试 is_connected 检查 transport 状态"""
         mock_client = Mock()
@@ -138,7 +143,7 @@ class TestSSHClientConnection:
 class TestSSHClientContextManager:
     """测试上下文管理器"""
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_context_manager_connects_and_disconnects(self, mock_ssh_client_class, mock_ssh_config):
         """测试上下文管理器自动连接和断开"""
         mock_client = Mock()
@@ -153,7 +158,7 @@ class TestSSHClientContextManager:
         
         mock_client.close.assert_called_once()
 
-    @patch('paramiko.SSHClient')
+    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
     def test_context_manager_handles_exception(self, mock_ssh_client_class, mock_ssh_config):
         """测试上下文管理器在异常时正确断开"""
         mock_client = Mock()

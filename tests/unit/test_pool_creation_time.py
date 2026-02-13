@@ -176,7 +176,7 @@ class TestPoolCreationCount:
             password="test",
         )
         
-        with patch('paramiko.SSHClient.connect'):
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient.connect'):
             pool = ConnectionPool(config, max_size=5, min_size=1, health_check_interval=0)
             
             # 验证max_size设置正确

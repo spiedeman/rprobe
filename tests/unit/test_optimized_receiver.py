@@ -93,7 +93,7 @@ class TestOptimizedChannelDataReceiver:
         mock_channel = Mock()
         mock_channel.recv.return_value = b""
         mock_channel.recv_stderr.return_value = b""
-        mock_channel.exit_status_ready.return_value = False
+        mock_channel.exit_status_ready = False
         mock_channel.closed = False
         
         mock_transport = Mock()
@@ -111,7 +111,7 @@ class TestOptimizedChannelDataReceiver:
         
         mock_channel = Mock()
         mock_channel.closed = False
-        mock_channel.exit_status_ready.return_value = False
+        mock_channel.exit_status_ready = False
         
         mock_transport = Mock()
         mock_transport.is_active.return_value = False
@@ -339,7 +339,7 @@ class TestAdaptivePollingReceiver:
         mock_channel = Mock()
         mock_channel.recv_ready.return_value = False
         mock_channel.recv_stderr_ready.return_value = False
-        mock_channel.exit_status_ready.return_value = False
+        mock_channel.exit_status_ready = False
         mock_channel.closed = False
         
         with patch('time.time', side_effect=[0, 6, 11]):  # 超过 5 秒超时
@@ -379,7 +379,7 @@ class TestAdaptivePollingReceiver:
         mock_channel.recv_ready.return_value = False
         mock_channel.recv_stderr_ready.return_value = False
         mock_channel.closed = False
-        mock_channel.exit_status_ready.return_value = False
+        mock_channel.exit_status_ready = False
         
         mock_transport = Mock()
         mock_transport.is_active.return_value = False

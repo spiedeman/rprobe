@@ -8,8 +8,16 @@ import time
 from typing import Optional, List, Dict, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-import paramiko
-
+# 移除：import paramiko
+# 改为从后端导入
+from src.backends import (
+    SSHBackend,
+    Channel,
+    AuthenticationError,
+    SSHException,
+    ConnectionError,
+    BackendFactory,
+)
 from src.config.models import SSHConfig
 
 if TYPE_CHECKING:
@@ -22,41 +30,42 @@ class ConnectionManager:
     """
     SSH 连接管理器
 
-    负责建立、维护和关闭 SSH 连接。
-    提供连接状态检查和自动重连功能。
+    使用可插拔的SSH后端实现连接管理
     """
 
-    def __init__(self, config: SSHConfig):
+    def __init__(self, config: SSHConfig, backend: Optional[SSHBackend] = None):
         """
         初始化连接管理器
 
         Args:
             config: SSH 连接配置
+            backend: SSH后端实例（可选，默认使用工厂创建）
         """
         self._config = config
-        self._client: Optional[paramiko.SSHClient] = None
-        self._transport: Optional[paramiko.Transport] = None
+        # 使用传入的后端或从工厂创建
+        self._backend = backend or BackendFactory.create()
+        logger.debug(
+            f"ConnectionManager初始化完成，使用后端: {type(self._backend).__name__}"
+        )
 
     @property
     def is_connected(self) -> bool:
         """检查连接是否活跃"""
-        if not self._transport:
-            return False
-        return self._transport.is_active()
+        return self._backend.is_connected()
 
     @property
-    def transport(self) -> Optional[paramiko.Transport]:
+    def transport(self):
         """获取传输层对象"""
-        return self._transport
+        return self._backend.get_transport()
 
     def connect(self) -> None:
         """
         建立 SSH 连接
 
         Raises:
-            paramiko.AuthenticationException: 认证失败
-            paramiko.SSHException: SSH 连接错误
-            TimeoutError: 连接超时
+            AuthenticationError: 认证失败
+            SSHException: SSH 连接错误
+            ConnectionError: 连接错误
         """
         if self.is_connected:
             logger.debug(f"SSH 连接已存在: {self._config.host}")
@@ -64,44 +73,30 @@ class ConnectionManager:
 
         logger.info(f"正在连接 SSH 服务器: {self._config.host}:{self._config.port}")
 
-        self._client = paramiko.SSHClient()
-        self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        connect_kwargs = {
-            "hostname": self._config.host,
-            "port": self._config.port,
-            "username": self._config.username,
-            "timeout": self._config.timeout,
-            "allow_agent": False,
-            "look_for_keys": False,
-        }
-
-        auth_method = "password" if self._config.password else "key"
-        logger.debug(f"使用 {auth_method} 认证方式")
-
-        if self._config.password:
-            connect_kwargs["password"] = self._config.password
-        elif self._config.key_filename:
-            connect_kwargs["key_filename"] = self._config.key_filename
-            if self._config.key_password:
-                connect_kwargs["passphrase"] = self._config.key_password
-
         try:
-            self._client.connect(**connect_kwargs)
-            self._transport = self._client.get_transport()
+            self._backend.connect(
+                host=self._config.host,
+                port=self._config.port,
+                username=self._config.username,
+                password=self._config.password,
+                key_filename=self._config.key_filename,
+                key_password=self._config.key_password,
+                timeout=self._config.timeout,
+            )
             logger.info(f"SSH 连接成功: {self._config.host}")
-        except paramiko.AuthenticationException as e:
-            logger.error(f"SSH 认证失败: {self._config.host} - {e}")
-            self._cleanup()
+
+        except AuthenticationError:
+            logger.error(f"SSH 认证失败: {self._config.host}")
             raise
-        except paramiko.SSHException as e:
+        except SSHException as e:
             logger.error(f"SSH 连接错误: {self._config.host} - {e}")
-            self._cleanup()
+            raise
+        except ConnectionError as e:
+            logger.error(f"SSH 连接异常: {self._config.host} - {e}")
             raise
         except Exception as e:
             logger.error(f"SSH 连接异常: {self._config.host} - {e}")
-            self._cleanup()
-            raise
+            raise ConnectionError(f"连接失败: {e}") from e
 
     def disconnect(self) -> None:
         """断开 SSH 连接"""
@@ -109,34 +104,10 @@ class ConnectionManager:
             return
 
         logger.info(f"正在断开 SSH 连接: {self._config.host}")
-        self._cleanup()
+        self._backend.disconnect()
         logger.info(f"SSH 连接已断开: {self._config.host}")
 
-    def _cleanup(self) -> None:
-        """清理资源"""
-        if self._transport:
-            try:
-                self._transport.close()
-                logger.debug("Transport 已关闭")
-            except Exception as e:
-                logger.warning(f"关闭 Transport 时出错: {e}")
-            self._transport = None
-
-        if self._client:
-            try:
-                self._client.close()
-                logger.debug("SSHClient 已关闭")
-            except Exception as e:
-                logger.warning(f"关闭 SSHClient 时出错: {e}")
-            self._client = None
-
-    def ensure_connected(self) -> None:
-        """确保连接已建立，如未连接则自动连接"""
-        if not self.is_connected:
-            logger.debug("连接未建立，自动连接中...")
-            self.connect()
-
-    def open_channel(self, timeout: Optional[float] = None):
+    def open_channel(self, timeout: Optional[float] = None) -> Channel:
         """
         打开新的 SSH 通道
 
@@ -144,12 +115,15 @@ class ConnectionManager:
             timeout: 超时时间
 
         Returns:
-            paramiko.Channel: 新打开的通道
+            Channel: 新打开的通道
         """
         self.ensure_connected()
-        return self._transport.open_session()
+        channel = self._backend.open_channel()
+        if timeout:
+            channel.settimeout(timeout)
+        return channel
 
-    def open_shell_session(self, timeout: Optional[float] = None) -> paramiko.Channel:
+    def open_shell_session(self, timeout: Optional[float] = None) -> Channel:
         """
         打开新的 Shell 会话通道
 
@@ -160,27 +134,15 @@ class ConnectionManager:
             timeout: 超时时间
 
         Returns:
-            paramiko.Channel: 配置好的 Shell 会话通道
-
-        Example:
-            # 在一个连接上打开多个 shell 会话
-            channel1 = conn.open_shell_session()
-            channel2 = conn.open_shell_session()
-
-            session1 = ShellSession(channel1, config)
-            session2 = ShellSession(channel2, config)
-
-            # 两个会话完全独立
-            output1 = session1.execute_command("pwd")
-            output2 = session2.execute_command("cd /tmp && pwd")
+            Channel: 配置好的 Shell 会话通道
         """
         self.ensure_connected()
-        channel = self._transport.open_session()
+        channel = self._backend.open_channel()
         channel.get_pty()
         channel.invoke_shell()
         if timeout:
             channel.settimeout(timeout)
-        logger.debug(f"Opened new shell session channel: {channel.get_id()}")
+        logger.debug(f"Opened new shell session channel")
         return channel
 
     def get_active_channels_count(self) -> int:
@@ -192,7 +154,17 @@ class ConnectionManager:
         """
         if not self.is_connected:
             return 0
-        return len(self._transport._channels)
+        # 通过传输层获取通道数（兼容性处理）
+        transport = self._backend.get_transport()
+        if transport and hasattr(transport, "_channels"):
+            return len(transport._channels)
+        return 0
+
+    def ensure_connected(self) -> None:
+        """确保连接已建立，如未连接则自动连接"""
+        if not self.is_connected:
+            logger.debug("连接未建立，自动连接中...")
+            self.connect()
 
     def __enter__(self):
         """上下文管理器入口"""
@@ -211,7 +183,7 @@ class SessionInfo:
 
     session_id: str
     shell_session: "ShellSession"
-    channel: paramiko.Channel
+    channel: Channel  # 改为抽象Channel类型
     created_at: float = field(default_factory=time.time)
     last_used: float = field(default_factory=time.time)
     command_count: int = 0
@@ -229,33 +201,6 @@ class MultiSessionManager:
 
     在单个 SSH 连接上管理多个独立的 Shell 会话。
     每个会话都有自己的 channel 和状态，完全独立。
-
-    Example:
-        from src.core.connection import ConnectionManager, MultiSessionManager
-
-        # 建立连接
-        conn = ConnectionManager(config)
-        conn.connect()
-
-        # 创建多会话管理器
-        session_mgr = MultiSessionManager(conn, config)
-
-        # 创建多个会话
-        session1 = session_mgr.create_session("session1")
-        session2 = session_mgr.create_session("session2")
-
-        # 在各会话中执行命令（完全独立）
-        output1 = session1.execute_command("pwd")  # /home/user
-        output2 = session2.execute_command("cd /tmp && pwd")  # /tmp
-
-        # 再次在 session1 执行，目录不变
-        output3 = session1.execute_command("pwd")  # /home/user
-
-        # 关闭特定会话
-        session_mgr.close_session("session1")
-
-        # 或关闭所有会话
-        session_mgr.close_all_sessions()
     """
 
     def __init__(self, connection: ConnectionManager, config: SSHConfig):

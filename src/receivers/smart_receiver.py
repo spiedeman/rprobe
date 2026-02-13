@@ -8,7 +8,8 @@ import logging
 import sys
 from typing import Optional, Tuple
 
-import paramiko
+# 从后端导入抽象类型
+from src.backends.base import Channel, Transport
 
 from src.config.models import SSHConfig, RecvMode
 from src.receivers.channel_receiver import ChannelDataReceiver
@@ -89,9 +90,9 @@ class SmartChannelReceiver:
     
     def recv_all(
         self,
-        channel: paramiko.Channel,
+        channel: Channel,
         timeout: Optional[float] = None,
-        transport: Optional[paramiko.Transport] = None
+        transport: Optional[Transport] = None
     ) -> Tuple[str, str, int]:
         """
         智能接收通道所有数据
@@ -102,7 +103,7 @@ class SmartChannelReceiver:
         - original 模式: 使用原始轮询实现
         
         Args:
-            channel: paramiko Channel 对象
+            channel: SSH Channel 对象
             timeout: 命令执行总超时
             transport: SSH Transport 对象
             

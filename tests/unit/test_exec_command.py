@@ -27,7 +27,7 @@ class TestExecCommand:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_success(self, mock_ssh_client_class, mock_ssh_config):
         """测试成功执行命令"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -55,7 +55,7 @@ class TestExecCommand:
         assert result.success is True
         assert result.command == "echo 'Hello World'"
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_with_stderr(self, mock_ssh_client_class, mock_ssh_config):
         """测试命令输出 stderr"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -79,7 +79,7 @@ class TestExecCommand:
         assert result.stderr == "Error message\n"
         assert result.success is False
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_timeout(self, mock_ssh_client_class, mock_ssh_config):
         """测试命令执行超时"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -98,7 +98,7 @@ class TestExecCommand:
         with pytest.raises(TimeoutError):
             client.exec_command("sleep 10", timeout=0.1)
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_connection_lost(self, mock_ssh_client_class, mock_ssh_config):
         """测试执行过程中连接断开"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -118,7 +118,7 @@ class TestExecCommand:
         with pytest.raises(ConnectionError):
             client.exec_command("some_command")
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_large_output_truncation(self, mock_ssh_client_class, mock_ssh_config):
         """测试大输出自动截断"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -154,7 +154,7 @@ class TestExecCommand:
         assert len(result.stdout) <= 120  # 100 + 截断提示（约20个字符）
         # 由于截断逻辑，我们应该能看到截断提示，或者至少数据被截断了
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_socket_timeout(self, mock_ssh_client_class, mock_ssh_config):
         """测试 socket 超时处理"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -176,7 +176,7 @@ class TestExecCommand:
         
         assert result.exit_code == 0
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_socket_error(self, mock_ssh_client_class, mock_ssh_config):
         """测试 socket 错误处理"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -193,7 +193,7 @@ class TestExecCommand:
         with pytest.raises(ConnectionError):
             client.exec_command("command")
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_channel_closed_with_buffered_data(self, mock_ssh_client_class, mock_ssh_config):
         """测试 channel 关闭但有缓冲数据的情况"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -220,7 +220,7 @@ class TestExecCommand:
         assert "First part" in result.stdout
         assert "Second part" in result.stdout
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_without_connection(self, mock_ssh_client_class, mock_ssh_config):
         """测试未连接时自动连接"""
         mock_client = Mock()

@@ -79,7 +79,7 @@ def mock_paramiko_client():
 
 @pytest.fixture
 def mock_paramiko_channel():
-    """创建 mock 的 paramiko Channel"""
+    """创建 mock 的 paramiko Channel（向后兼容）"""
     channel = Mock()
     channel.recv_ready.return_value = False
     channel.recv_stderr_ready.return_value = False
@@ -87,6 +87,34 @@ def mock_paramiko_channel():
     channel.recv_exit_status.return_value = 0
     channel.closed = False
     channel.eof_received = False
+    return channel
+
+
+@pytest.fixture
+def mock_backend():
+    """创建 mock SSH后端（新方式）"""
+    backend = Mock()
+    backend.is_connected.return_value = True
+    channel = Mock()
+    channel.closed = False
+    channel.recv_ready.return_value = False
+    channel.recv_stderr_ready.return_value = False
+    channel.exit_status_ready.return_value = True
+    channel.recv_exit_status.return_value = 0
+    backend.open_channel.return_value = channel
+    return backend
+
+
+@pytest.fixture
+def mock_channel():
+    """创建 mock Channel（抽象层）"""
+    from src.backends.base import Channel
+    channel = Mock(spec=Channel)
+    channel.closed = False
+    channel.recv_ready.return_value = False
+    channel.recv_stderr_ready.return_value = False
+    channel.exit_status_ready.return_value = True
+    channel.recv_exit_status.return_value = 0
     return channel
 
 

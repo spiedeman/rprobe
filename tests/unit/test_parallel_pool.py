@@ -66,7 +66,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
         
-        with patch('paramiko.SSHClient.connect'):
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient.connect'):
             pool = ConnectionPool(
                 config, 
                 max_size=5, 
@@ -120,7 +120,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
         
-        with patch('paramiko.SSHClient.connect'):
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient.connect'):
             pool = ConnectionPool(
                 config, 
                 max_size=1, 
@@ -142,7 +142,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
         
-        with patch('paramiko.SSHClient.connect'):
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient.connect'):
             # 创建20个连接，但并发数应该被限制为10
             pool = ConnectionPool(
                 config, 
@@ -165,7 +165,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
         
-        with patch('paramiko.SSHClient.connect'):
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient.connect'):
             # 串行
             pool_serial = ConnectionPool(
                 config, 

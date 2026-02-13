@@ -15,7 +15,9 @@ import time
 import uuid
 from typing import Optional, Dict, List
 
-import paramiko
+# 移除：import paramiko
+# 改为从后端导入异常
+from src.backends import AuthenticationError, SSHException, ConnectionError
 
 from src.config.models import SSHConfig
 from src.core.models import CommandResult
@@ -101,9 +103,9 @@ class SSHClient:
         如果使用连接池，此方法不执行任何操作（连接由池管理）。
 
         Raises:
-            paramiko.AuthenticationException: 认证失败
-            paramiko.SSHException: SSH 连接错误
-            TimeoutError: 连接超时
+            AuthenticationError: 认证失败
+            SSHException: SSH 连接错误
+            ConnectionError: 连接错误
         """
         if not self._use_pool:
             self._connection.connect()
@@ -395,7 +397,7 @@ class SSHClient:
             raise
         except ConnectionError:
             raise
-        except paramiko.SSHException:
+        except SSHException:
             raise
         except Exception as e:
             execution_time = time.time() - start_time

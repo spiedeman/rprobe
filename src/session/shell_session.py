@@ -7,7 +7,8 @@ import socket
 import time
 from typing import Optional
 
-import paramiko
+# 从后端导入抽象Channel类型
+from src.backends.base import Channel
 
 from src.config.models import SSHConfig
 from src.patterns.prompt_detector import PromptDetector
@@ -60,7 +61,7 @@ class ShellSession:
     
     def __init__(
         self,
-        channel: paramiko.Channel,
+        channel: Channel,
         config: SSHConfig,
         prompt_detector: Optional[PromptDetector] = None
     ):

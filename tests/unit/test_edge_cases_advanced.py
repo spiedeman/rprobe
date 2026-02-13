@@ -7,9 +7,10 @@ import socket
 from unittest.mock import Mock, patch, MagicMock, call
 
 import pytest
-import paramiko
+# import paramiko  # 已迁移到后端抽象层
 
 from src import SSHClient
+from src.backends import SSHException, ConnectionError
 from src.config.models import SSHConfig
 from src.core.models import CommandResult
 
@@ -29,9 +30,10 @@ class TestExceptionPaths:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_connect_with_key_file_exception(self, mock_ssh_client_class, mock_ssh_config_with_key, caplog):
         """测试使用密钥文件连接时的异常"""
+        from src.backends.paramiko_backend import paramiko
         mock_client = Mock()
         mock_client.connect.side_effect = paramiko.SSHException("Key file not found")
         mock_ssh_client_class.return_value = mock_client
@@ -39,13 +41,13 @@ class TestExceptionPaths:
         client = SSHClient(mock_ssh_config_with_key)
         
         with caplog.at_level(logging.ERROR):
-            with pytest.raises(paramiko.SSHException):
+            with pytest.raises(SSHException):
                 client.connect()
         
         assert "SSH 连接错误" in caplog.text
         assert client._connection is None or not client._connection.is_connected
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_disconnect_with_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试断开连接时的异常处理"""
         mock_client = Mock()
@@ -68,9 +70,10 @@ class TestExceptionPaths:
         assert "关闭 Transport 时出错" in caplog.text
         assert "关闭 SSHClient 时出错" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_shell_session_open_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试打开 shell 会话时的异常"""
+        from src.backends.paramiko_backend import paramiko
         client, mock_client, mock_transport = self._setup_mock_connection(
             mock_ssh_client_class, mock_ssh_config
         )
@@ -83,7 +86,7 @@ class TestExceptionPaths:
         
         assert "session" not in client._shell_sessions
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_shell_session_close_with_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试关闭 shell 会话时的异常处理"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -107,7 +110,7 @@ class TestExceptionPaths:
         
         assert "关闭 Shell 会话时出错" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_recv_all_channel_data_with_transport_error(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试接收数据时传输层错误"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -128,7 +131,7 @@ class TestExceptionPaths:
             with pytest.raises(ConnectionError, match="SSH 连接已断开"):
                 client.exec_command("test")
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_with_general_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试 exec_command 中的一般异常"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -159,7 +162,7 @@ class TestLoggingVerification:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_connect_logs(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试连接时的日志记录"""
         mock_client = Mock()
@@ -177,7 +180,7 @@ class TestLoggingVerification:
         assert "SSH 连接成功" in caplog.text
         assert "使用 password 认证方式" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_logs(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试执行命令时的日志记录"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -199,7 +202,7 @@ class TestLoggingVerification:
         assert "[exec] 命令执行完成" in caplog.text
         assert "exit_code=0" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_shell_command_logs(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试 shell 命令的日志记录"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -219,7 +222,7 @@ class TestLoggingVerification:
         assert "正在打开 Shell 会话" in caplog.text
         assert "Shell 会话已打开" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_output_truncation_logs(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试输出截断的日志记录"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -242,7 +245,7 @@ class TestLoggingVerification:
         
         assert "标准输出超过最大限制" in caplog.text
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_disconnect_logs(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试断开连接的日志"""
         mock_client = Mock()
@@ -276,7 +279,7 @@ class TestBoundaryValues:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_empty_command_output(self, mock_ssh_client_class, mock_ssh_config):
         """测试空命令输出"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -297,7 +300,7 @@ class TestBoundaryValues:
         assert result.stderr == ""
         assert result.exit_code == 0
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exact_max_output_size(self, mock_ssh_client_class, mock_ssh_config):
         """测试刚好达到最大输出限制"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -320,7 +323,7 @@ class TestBoundaryValues:
         assert len(result.stdout) == 100
         assert "[输出已截断" not in result.stdout  # 不应该被截断
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_one_byte_over_max_size(self, mock_ssh_client_class, mock_ssh_config):
         """测试超过最大限制1字节"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -342,7 +345,7 @@ class TestBoundaryValues:
         
         assert "[输出已截断" in result.stdout
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_very_short_timeout(self, mock_ssh_client_class, mock_ssh_config):
         """测试极短超时时间"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -359,7 +362,7 @@ class TestBoundaryValues:
         with pytest.raises(TimeoutError):
             client.exec_command("slow", timeout=0.001)  # 1ms 超时
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_unicode_in_command(self, mock_ssh_client_class, mock_ssh_config):
         """测试包含 Unicode 的命令"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -380,7 +383,7 @@ class TestBoundaryValues:
         assert "你好世界" in result.stdout
         assert "🌍" in result.stdout
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_special_characters_in_output(self, mock_ssh_client_class, mock_ssh_config):
         """测试特殊字符输出"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -401,7 +404,7 @@ class TestBoundaryValues:
         
         assert result.stdout == special_chars
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_binary_data_in_output(self, mock_ssh_client_class, mock_ssh_config):
         """测试二进制数据输出"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -423,7 +426,7 @@ class TestBoundaryValues:
         # 应该能处理二进制数据而不抛出异常
         assert isinstance(result.stdout, str)
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_negative_exit_code(self, mock_ssh_client_class, mock_ssh_config):
         """测试负退出码"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -443,7 +446,7 @@ class TestBoundaryValues:
         assert result.exit_code == -1
         assert result.success is False
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_very_long_command(self, mock_ssh_client_class, mock_ssh_config):
         """测试超长命令"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -467,7 +470,7 @@ class TestBoundaryValues:
         mock_channel.exec_command.assert_called_once_with(long_command)
         assert result.command == long_command
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_shell_prompt_variations(self, mock_ssh_client_class, mock_ssh_config):
         """测试不同格式的 shell prompt"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -484,7 +487,7 @@ class TestBoundaryValues:
         prompt = client.open_shell_session()
         assert "$" in prompt or "#" in prompt
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_multiple_stderr_lines(self, mock_ssh_client_class, mock_ssh_config):
         """测试多行 stderr 输出"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -568,7 +571,7 @@ class TestHelperMethods:
         """测试连接管理器自动连接"""
         from src.core.connection import ConnectionManager
         
-        with patch('src.core.connection.paramiko.SSHClient') as mock_ssh_client_class:
+        with patch('src.backends.paramiko_backend.paramiko.SSHClient') as mock_ssh_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -604,7 +607,7 @@ class TestAdditionalCoverage:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_shell_channel_send_exception(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试 shell channel send 异常"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -627,7 +630,7 @@ class TestAdditionalCoverage:
             with pytest.raises(Exception):
                 client.shell_command("ls")
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_channel_eof_handling(self, mock_ssh_client_class, mock_ssh_config):
         """测试 channel EOF 处理"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -654,7 +657,7 @@ class TestAdditionalCoverage:
         result = client.exec_command("test")
         assert result.exit_code == 0
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_long_inactivity_timeout_check(self, mock_ssh_client_class, mock_ssh_config):
         """测试长时间无活动后的超时检查"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -674,7 +677,7 @@ class TestAdditionalCoverage:
         result = client.exec_command("slow")
         assert "delayed output" in result.stdout
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_stderr_truncation(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试 stderr 截断"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -697,7 +700,7 @@ class TestAdditionalCoverage:
         
         assert "[错误输出已截断" in result.stderr
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_transport_check_interval(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试传输层检查间隔"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -717,7 +720,7 @@ class TestAdditionalCoverage:
         # 验证 transport.is_active 被调用
         assert mock_transport.is_active.called
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_wait_for_prompt_with_data_after_detection(self, mock_ssh_client_class, mock_ssh_config):
         """测试 shell 命令输出包含 prompt"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -757,7 +760,7 @@ class TestAdditionalCoverage:
         # 命令回显应该被移除
         assert "output line" in cleaned
 
-    @patch('paramiko.SSHClient')
+    @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_context_manager_with_exception_in_exit(self, mock_ssh_client_class, mock_ssh_config, caplog):
         """测试上下文管理器退出时的异常处理"""
         mock_client = Mock()
