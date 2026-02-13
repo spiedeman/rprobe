@@ -64,6 +64,101 @@ python examples/monitoring.py
 python examples/advanced_patterns.py
 ```
 
+### 6. pool_stats_demo.py - 连接池统计展示
+展示连接池统计信息功能：
+- 基础统计（连接数、使用率等）
+- 等待统计（等待次数、平均等待时间）
+- 性能指标（获取时间、最大获取时间）
+- 时间信息（运行时间、创建时间、最后活动）
+- 派生指标（成功率、复用率等）
+
+```bash
+python examples/pool_stats_demo.py
+```
+
+### 7. pool_reuse_demo.py - 连接池复用和重置
+演示连接池关闭后复用：
+- 创建连接池
+- 获取并使用连接
+- 关闭连接池（保留对象）
+- 重置连接池（模拟新建）
+- 再次使用连接池
+- PoolManager 管理多个连接池
+
+```bash
+python examples/pool_reuse_demo.py
+```
+
+### 8. pool_connection_management_demo.py - 连接管理
+细粒度连接管理功能：
+- 查看所有连接信息
+- 关闭指定ID的连接
+- 批量关闭连接（最老/最新/最少使用）
+- 关闭空闲连接
+- 根据自定义条件关闭
+
+```bash
+python examples/pool_connection_management_demo.py
+```
+
+### 9. multi_shell_session_demo.py - 多Shell会话管理
+单连接多会话管理：
+- 在单个SSH连接上创建多个Shell会话
+- 各会话独立执行命令
+- 会话状态完全隔离
+- 关闭特定会话
+- 获取会话信息
+
+```bash
+python examples/multi_shell_session_demo.py
+```
+
+### 10. architecture_comparison_demo.py - 架构对比
+连接池 vs 单连接+多Shell性能对比：
+- 初始化速度对比
+- 命令执行性能对比
+- 资源占用对比
+- 使用场景分析
+- 最佳实践建议
+
+```bash
+python examples/architecture_comparison_demo.py
+```
+
+### 11. pool_single_shell_example.py - 连接池+单Shell
+传统连接池使用方式：
+- 创建连接池
+- 获取连接
+- 创建Shell会话
+- 执行命令
+- 查看统计
+
+```bash
+python examples/pool_single_shell_example.py
+```
+
+### 12. single_conn_multi_shell_example.py - 单连接+多Shell
+资源受限场景的最佳选择：
+- 创建单个SSH连接
+- 创建多个Shell会话
+- 各会话独立状态
+- 会话管理
+
+```bash
+python examples/single_conn_multi_shell_example.py
+```
+
+### 13. combined_architecture_example.py - 组合架构
+推荐的最佳实践：
+- 连接池提供并发能力
+- 每个连接支持多会话
+- 平衡并行与资源消耗
+- 适用于复杂场景
+
+```bash
+python examples/combined_architecture_example.py
+```
+
 ## 🚀 快速开始
 
 ### 1. 配置SSH连接
@@ -254,10 +349,59 @@ config = SSHConfig(..., recv_mode="adaptive")
    config = load_config(file_path="config.yaml")
    ```
 
+## 🏗️ 架构选择指南
+
+根据您的使用场景选择合适的架构：
+
+### 场景1: 高并发批量操作 → 连接池 + 单Shell
+```python
+from src.pooling import ConnectionPool
+
+pool = ConnectionPool(config, max_size=10)
+# 10个连接真正并行执行
+```
+
+### 场景2: 状态保持、资源受限 → 单连接 + 多Shell
+```python
+from src.core.connection import ConnectionManager, MultiSessionManager
+
+conn = ConnectionManager(config)
+conn.connect()
+mgr = MultiSessionManager(conn, config)
+session1 = mgr.create_session("build")  # cd /project1
+session2 = mgr.create_session("deploy") # cd /project2
+```
+
+### 场景3: 综合场景（推荐）→ 连接池 + 多Shell
+```python
+from src.pooling import ConnectionPool
+from src.core.connection import MultiSessionManager
+
+pool = ConnectionPool(config, max_size=3)
+
+with pool.get_connection() as conn:
+    mgr = MultiSessionManager(conn, config)
+    session1 = mgr.create_session("build")
+    session2 = mgr.create_session("test")
+    # 3个TCP连接，每个支持多个会话
+```
+
+### 架构对比
+
+| 特性 | 连接池+单Shell | 单连接+多Shell | 连接池+多Shell |
+|------|---------------|---------------|---------------|
+| 并发能力 | ⭐⭐⭐ 真正并行 | ⭐ 串行 | ⭐⭐ 并行+会话 |
+| 资源消耗 | ⭐⭐ 多TCP连接 | ⭐⭐⭐ 单连接 | ⭐⭐ 适中 |
+| 状态隔离 | ⭐⭐⭐ 完全独立 | ⭐⭐⭐ 会话级 | ⭐⭐⭐ 会话级 |
+| 适用场景 | 批量任务 | 状态保持 | 综合场景 |
+
+更多详情参见：[架构对比文档](../docs/connection_architecture_comparison.md)
+
 ## 📚 更多资源
 
 - [API文档](../PROJECT_STATUS.md)
 - [性能优化指南](../docs/performance_optimization.md)
+- [架构对比文档](../docs/connection_architecture_comparison.md)
 - [测试示例](../tests/README.md)
 
 ## 🤝 贡献

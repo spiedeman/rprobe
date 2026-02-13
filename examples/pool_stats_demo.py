@@ -89,17 +89,16 @@ def demo_pool_stats():
 
         print(f"\n   等待统计:")
         print(f"   - 等待次数: {stats['waits']}")
-        print(f"   - 平均等待时间: {stats['avg_wait_time']:.3f}s")
-        print(f"   - 总等待时间: {stats['total_wait_time']:.3f}s")
+        print(f"   - 平均等待时间: {stats['avg_wait_time']}")
+        print(f"   - 总等待时间: {stats['total_wait_time']}")
 
         print(f"\n   性能指标:")
-        print(f"   - 平均获取时间: {stats['avg_acquire_time']:.3f}s")
-        print(f"   - 最大获取时间: {stats['max_acquire_time']:.3f}s")
+        print(f"   - 平均获取时间: {stats['avg_acquire_time']}")
+        print(f"   - 最大获取时间: {stats['max_acquire_time']}")
         print(f"   - 获取次数: {stats['acquire_count']}")
 
         print(f"\n   时间信息:")
         print(f"   - 运行时间: {stats['uptime']}")
-        print(f"   - 运行时间(秒): {stats['uptime_seconds']:.1f}s")
         print(f"   - 创建时间: {stats['created_at']}")
         print(f"   - 最后活动: {stats['last_activity']}")
 
