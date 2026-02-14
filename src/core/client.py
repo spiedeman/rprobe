@@ -30,6 +30,17 @@ from src.pooling import ConnectionPool, get_pool_manager
 logger = logging.getLogger(__name__)
 
 
+# 延迟导入避免循环依赖
+_background_manager_class = None
+
+def _get_background_manager_class():
+    global _background_manager_class
+    if _background_manager_class is None:
+        from src.async_executor import BackgroundTaskManager
+        _background_manager_class = BackgroundTaskManager
+    return _background_manager_class
+
+
 class SSHClient:
     """
     SSH 客户端类（外观模式）
@@ -82,6 +93,8 @@ class SSHClient:
         # 支持多个 Shell 会话
         self._shell_sessions: Dict[str, ShellSession] = {}
         self._default_session_id: Optional[str] = None
+        # 后台任务管理器
+        self._bg_manager = None
 
         if use_pool:
             # 从全局连接池管理器获取或创建连接池
@@ -116,6 +129,9 @@ class SSHClient:
 
         注意：如果使用连接池，会关闭整个连接池。
         """
+        # 停止所有后台任务
+        self.stop_all_background()
+        
         # 关闭所有 shell 会话
         self.close_all_shell_sessions()
 
@@ -409,6 +425,93 @@ class SSHClient:
                     channel.close()
                 except Exception as e:
                     logger.warning(f"[exec] 关闭通道时出错: {e}")
+
+    # ========== 后台任务方法 ==========
+
+    def bg(
+        self,
+        command: str,
+        name: Optional[str] = None,
+        buffer_size_mb: float = 10.0,
+        cleanup_delay: float = 3600.0
+    ):
+        """
+        启动后台任务（非阻塞执行长时间命令）
+
+        Args:
+            command: 要执行的命令
+            name: 可选的任务名称（用于后续查找）
+            buffer_size_mb: 环形缓冲区大小（MB），默认10MB
+            cleanup_delay: 自动清理延迟（秒），默认1小时
+
+        Returns:
+            BackgroundTask: 任务对象，可用于查询状态、停止、获取结果
+
+        Raises:
+            ValueError: 如果名称已存在
+
+        Example:
+            # 启动tcpdump
+            task = client.bg("tcpdump -i eth0 -w capture.pcap", name="capture")
+
+            # 主线程做其他事
+            time.sleep(60)
+
+            # 检查状态
+            if task.is_running():
+                print(f"运行了 {task.duration} 秒")
+
+            # 停止任务
+            task.stop()
+
+            # 获取摘要（轻量级）
+            summary = task.get_summary()
+            print(summary)
+        """
+        # 确保已连接
+        if not self.is_connected:
+            self.connect()
+
+        if self._bg_manager is None:
+            manager_class = _get_background_manager_class()
+            self._bg_manager = manager_class(self)
+
+        return self._bg_manager.run(
+            command,
+            name=name,
+            buffer_size_mb=buffer_size_mb,
+            cleanup_delay=cleanup_delay
+        )
+
+    @property
+    def background_tasks(self) -> List:
+        """获取所有后台任务列表"""
+        if self._bg_manager:
+            return self._bg_manager.tasks
+        return []
+
+    def get_background_task(self, task_id: str):
+        """通过ID获取后台任务"""
+        if self._bg_manager:
+            return self._bg_manager.get(task_id)
+        return None
+
+    def get_background_task_by_name(self, name: str):
+        """通过名称获取后台任务"""
+        if self._bg_manager:
+            return self._bg_manager.get_by_name(name)
+        return None
+
+    def stop_all_background(self, graceful: bool = True, timeout: float = 5.0) -> None:
+        """
+        停止所有后台任务
+
+        Args:
+            graceful: True发送SIGINT优雅停止，False强制关闭
+            timeout: 优雅停止的超时时间
+        """
+        if self._bg_manager:
+            self._bg_manager.stop_all(graceful=graceful, timeout=timeout)
 
     def __enter__(self):
         """上下文管理器入口"""
