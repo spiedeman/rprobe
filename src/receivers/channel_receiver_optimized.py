@@ -383,6 +383,7 @@ class AdaptivePollingReceiver:
         
         exit_code = -1
         exit_code_time = None
+        last_data_time = start_time  # 初始化最后数据时间
         
         # 自适应等待参数
         empty_poll_count = 0
