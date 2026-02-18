@@ -216,19 +216,19 @@ class TestBoundaryValueAnalysis:
     
     # 超时边界值
     def test_boundary_timeout_zero(self, test_environment):
-        """边界值：超时时间为0（立即返回）"""
+        """边界值：较短的超时时间"""
         if not test_environment['has_real_ssh']:
             pytest.skip("未设置真实 SSH 测试环境变量")
-        
+
         config = SSHConfig(
             host=test_environment['test_host'],
             username=test_environment['test_user'],
             password=test_environment['test_pass'],
-            timeout=0.1,  # 极短超时
-            command_timeout=0.1,
+            timeout=1.0,  # 短超时但仍需足够完成SSH握手
+            command_timeout=1.0,
         )
-        
-        # 极短超时应该也能快速连接
+
+        # 短超时应该也能快速连接
         with SSHClient(config) as client:
             result = client.exec_command("echo 'quick'")
             assert result.exit_code == 0

@@ -14,6 +14,7 @@ import pytest
 from src import SSHClient, SSHConfig
 from src.pooling import ConnectionPool
 from src.exceptions import CommandTimeoutError, ConnectionError
+from tests.integration.test_config import SLEEP_TIME_LONG, SLEEP_TIME_MEDIUM
 
 
 @pytest.mark.integration
@@ -72,7 +73,7 @@ class TestConnectionErrorRecovery:
         with SSHClient(config) as client:
             # 第一个命令超时
             with pytest.raises((CommandTimeoutError, TimeoutError)):
-                client.exec_command("sleep 10")
+                client.exec_command(f"sleep {int(SLEEP_TIME_LONG)}")
             
             # 验证客户端仍然可用
             result = client.exec_command("echo 'Still working'")
@@ -84,19 +85,22 @@ class TestConnectionErrorRecovery:
         if not test_environment['has_real_ssh']:
             pytest.skip("未设置真实 SSH 测试环境变量")
         
+        # 使用动态sleep时间，确保比command_timeout长以触发超时
+        # 但保持总时间合理：3次 × 2秒 = 6秒
+        timeout_sleep = SLEEP_TIME_MEDIUM + 0.5  # 1.0秒
         config = SSHConfig(
             host=test_environment['test_host'],
             username=test_environment['test_user'],
             password=test_environment['test_pass'],
             timeout=10.0,
-            command_timeout=1.0,
+            command_timeout=0.8,  # 命令超时0.8秒，sleep 1.0秒会触发超时
         )
         
         with SSHClient(config) as client:
             # 多次超时
-            for _ in range(3):
+            for i in range(3):
                 with pytest.raises((CommandTimeoutError, TimeoutError)):
-                    client.exec_command("sleep 5")
+                    client.exec_command(f"sleep {timeout_sleep}")
             
             # 验证仍然可用
             result = client.exec_command("echo 'Recovered'")
@@ -321,7 +325,7 @@ class TestShellSessionErrorRecovery:
             
             # 执行超时命令
             try:
-                client.shell_command("sleep 10")
+                client.shell_command(f"sleep {int(SLEEP_TIME_LONG)}")
             except Exception:
                 pass  # 预期会超时
             

@@ -365,6 +365,10 @@ class ConnectionPool:
             pooled: 池化连接
         """
         with self._lock:
+            # 检查连接是否已经在使用中列表中，避免重复释放
+            if pooled not in self._in_use:
+                logger.debug(f"Connection {id(pooled)} already released or not in use")
+                return
             self._in_use.remove(pooled)
 
             if pooled.is_healthy() and not pooled.is_expired(self._max_idle, self._max_age):
@@ -411,6 +415,10 @@ class ConnectionPool:
 
     def _cleanup_expired(self) -> None:
         """清理过期连接"""
+        # 如果连接池已关闭，跳过清理
+        if self._closed or self._shutdown:
+            return
+
         with self._lock:
             # 清理池中过期连接
             expired = []
@@ -430,9 +438,14 @@ class ConnectionPool:
 
             self._pool = deque(kept)
 
+            # 关闭过期连接（但不在 _in_use 中的）
             for pooled in expired:
-                pooled.close()
-                self._stats_collector.record_connection_expired()
+                if pooled not in self._in_use:
+                    try:
+                        pooled.close()
+                        self._stats_collector.record_connection_expired()
+                    except Exception as e:
+                        logger.debug(f"关闭过期连接时出错: {e}")
 
             if expired:
                 logger.debug(
@@ -459,10 +472,11 @@ class ConnectionPool:
             self._condition.notify_all()
 
         # 等待健康检查线程退出（极短超时，因为线程已被唤醒）
-        if self._health_check_thread and self._health_check_thread.is_alive():
-            self._health_check_thread.join(timeout=0.1)
+        thread = self._health_check_thread
+        if thread and thread.is_alive():
+            thread.join(timeout=0.1)
             # 清理线程引用
-            if not self._health_check_thread.is_alive():
+            if self._health_check_thread is thread and not thread.is_alive():
                 self._health_check_thread = None
 
         # 并行关闭所有连接
@@ -523,7 +537,7 @@ class ConnectionPool:
         self, connections: List[PooledConnection], timeout: float
     ) -> None:
         """
-        并行关闭连接
+        关闭连接（串行方式以避免并发问题）
 
         Args:
             connections: 需要关闭的连接列表
@@ -532,41 +546,30 @@ class ConnectionPool:
         if not connections:
             return
 
-        # 限制并发线程数
-        max_workers = min(len(connections), 10)
         failed_count = 0
         start_time = time.time()
+        deadline = start_time + timeout
 
-        # 先标记所有连接为非活跃
+        # 串行关闭连接，避免并发问题
         for conn in connections:
-            conn.is_active = False
+            if time.time() > deadline:
+                logger.warning(f"关闭连接超时，剩余 {len(connections) - connections.index(conn)} 个连接未关闭")
+                break
 
-        # 使用线程池并行关闭
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 直接提交 close 操作到线程池
-            futures = [executor.submit(conn.close) for conn in connections]
-
-            # 等待所有任务完成，带超时
-            done, not_done = wait(futures, timeout=timeout)
-
-            # 处理已完成的结果
-            for future in done:
-                try:
-                    future.result()
-                except Exception as e:
-                    failed_count += 1
-                    logger.debug(f"Close operation failed: {e}")
-
-            # 取消未完成的任务（如果有）
-            for future in not_done:
-                future.cancel()
+            try:
+                # 标记为非活跃
+                conn.is_active = False
+                conn.close()
+            except Exception as e:
+                failed_count += 1
+                logger.debug(f"关闭连接失败: {e}")
 
         elapsed = time.time() - start_time
-        success_count = len(connections) - failed_count - len(not_done)
-        if failed_count > 0 or not_done:
+        success_count = len(connections) - failed_count
+        if failed_count > 0:
             logger.warning(
                 f"Closed {success_count}/{len(connections)} connections in {elapsed:.2f}s "
-                f"({failed_count} failed, {len(not_done)} timeout)"
+                f"({failed_count} failed)"
             )
         else:
             logger.debug(f"Closed {len(connections)} connections in {elapsed:.2f}s")

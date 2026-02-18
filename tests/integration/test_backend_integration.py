@@ -22,6 +22,7 @@ from src.backends import (
 )
 from src.core.connection import ConnectionManager
 from src.pooling import ConnectionPool
+from tests.integration.test_config import SLEEP_TIME_LONG
 
 
 @pytest.mark.integration
@@ -213,7 +214,7 @@ class TestBackendWithConnectionPool:
             client.connect()
             # 执行超时会触发异常
             with pytest.raises(Exception):
-                client.exec_command("sleep 10")
+                client.exec_command(f"sleep {int(SLEEP_TIME_LONG)}")
         finally:
             client.disconnect()
 
@@ -300,7 +301,7 @@ class TestBackendWithSSHClient:
         try:
             # 执行超时命令
             with pytest.raises(Exception) as exc_info:
-                client.exec_command("sleep 10")
+                client.exec_command(f"sleep {int(SLEEP_TIME_LONG)}")
             
             # 验证异常被正确包装
             error_msg = str(exc_info.value).lower()

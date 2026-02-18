@@ -6,7 +6,7 @@
 """
 import logging
 import sys
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 # 从后端导入抽象类型
 from src.backends.base import Channel, Transport
@@ -128,6 +128,43 @@ class SmartChannelReceiver:
         else:
             # 原始模式使用 ChannelDataReceiver 的 recv_all
             return self._receiver.recv_all(channel, timeout, transport)
+    
+    def recv_stream(
+        self,
+        channel: Channel,
+        chunk_handler: Callable[[bytes, bytes], None],
+        timeout: Optional[float] = None,
+        transport: Optional[Transport] = None
+    ) -> int:
+        """
+        流式接收通道数据
+        
+        实时处理每个数据块，适用于超大数据传输。
+        
+        Args:
+            channel: SSH Channel 对象
+            chunk_handler: 回调函数，接收 (stdout_chunk, stderr_chunk)
+            timeout: 命令执行总超时
+            transport: SSH Transport 对象
+            
+        Returns:
+            int: 退出码
+            
+        Example:
+            def handle_chunk(stdout, stderr):
+                process_data(stdout)
+            
+            exit_code = receiver.recv_stream(channel, handle_chunk, timeout=60.0)
+        """
+        timeout = timeout or self._config.command_timeout
+        
+        # 所有模式都使用 AdaptivePollingReceiver 的流式接收实现
+        # 因为流式处理需要统一的接口
+        from .channel_receiver_optimized import AdaptivePollingReceiver
+        
+        # 创建临时接收器用于流式处理
+        stream_receiver = AdaptivePollingReceiver(self._config)
+        return stream_receiver.recv_stream(channel, chunk_handler, timeout, transport)
     
     @property
     def mode(self) -> RecvMode:

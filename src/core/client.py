@@ -13,7 +13,7 @@ import logging
 import socket
 import time
 import uuid
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Callable
 
 # 移除：import paramiko
 # 改为从后端导入异常
@@ -425,6 +425,162 @@ class SSHClient:
                     channel.close()
                 except Exception as e:
                     logger.warning(f"[exec] 关闭通道时出错: {e}")
+
+    def exec_command_stream(
+        self,
+        command: str,
+        chunk_handler: Callable[[bytes, bytes], None],
+        timeout: Optional[float] = None
+    ) -> CommandResult:
+        """
+        流式执行命令，实时处理数据块
+        
+        适用于超大数据传输，避免内存占用过高。
+        通过回调函数实时处理每个数据块。
+        
+        Args:
+            command: 要执行的命令
+            chunk_handler: 回调函数，接收 (stdout_chunk, stderr_chunk)
+                          每次收到数据块时调用
+            timeout: 命令执行超时（秒）
+            
+        Returns:
+            CommandResult: 命令执行结果（stdout/stderr 为空字符串，
+                          数据已通过 chunk_handler 处理）
+            
+        Raises:
+            TimeoutError: 命令执行超时
+            ConnectionError: 连接断开
+            RuntimeError: 其他执行错误
+            
+        Example:
+            total_size = 0
+            
+            def handle_chunk(stdout, stderr):
+                global total_size
+                total_size += len(stdout)
+                print(f"收到 {len(stdout)} 字节")
+            
+            result = client.exec_command_stream(
+                "cat large_file",
+                handle_chunk,
+                timeout=60.0
+            )
+            print(f"总共接收: {total_size} 字节")
+        """
+        cmd_timeout = timeout or self._config.command_timeout
+        start_time = time.time()
+        
+        logger.info(f"[exec_stream] 开始流式执行命令: {command}")
+        
+        # 确保连接
+        if self._use_pool:
+            return self._exec_stream_with_pool(command, chunk_handler, cmd_timeout, start_time)
+        else:
+            return self._exec_stream_direct(command, chunk_handler, cmd_timeout, start_time)
+    
+    def _exec_stream_with_pool(
+        self,
+        command: str,
+        chunk_handler: Callable[[bytes, bytes], None],
+        cmd_timeout: float,
+        start_time: float
+    ) -> CommandResult:
+        """使用连接池流式执行命令"""
+        with self._pool.get_connection() as conn:
+            transport = conn.transport
+            channel = transport.open_session()
+            
+            try:
+                channel.settimeout(cmd_timeout)
+                channel.exec_command(command)
+                
+                exit_code = self._receiver.recv_stream(
+                    channel,
+                    chunk_handler,
+                    timeout=cmd_timeout,
+                    transport=transport
+                )
+                
+                execution_time = time.time() - start_time
+                
+                logger.info(
+                    f"[exec_stream] 流式命令执行完成: exit_code={exit_code}, "
+                    f"耗时={execution_time:.3f}秒"
+                )
+                
+                # 返回空字符串作为 stdout/stderr，因为数据已通过回调处理
+                return CommandResult(
+                    stdout="",
+                    stderr="",
+                    exit_code=exit_code,
+                    execution_time=execution_time,
+                    command=command,
+                )
+            finally:
+                if channel:
+                    try:
+                        channel.close()
+                    except Exception as e:
+                        logger.warning(f"[exec_stream] 关闭通道时出错: {e}")
+    
+    def _exec_stream_direct(
+        self,
+        command: str,
+        chunk_handler: Callable[[bytes, bytes], None],
+        cmd_timeout: float,
+        start_time: float
+    ) -> CommandResult:
+        """直接流式执行命令（不使用连接池）"""
+        self._connection.ensure_connected()
+        
+        transport = self._connection.transport
+        channel = transport.open_session()
+        
+        try:
+            channel.settimeout(cmd_timeout)
+            channel.exec_command(command)
+            
+            exit_code = self._receiver.recv_stream(
+                channel,
+                chunk_handler,
+                timeout=cmd_timeout,
+                transport=transport
+            )
+            
+            execution_time = time.time() - start_time
+            
+            logger.info(
+                f"[exec_stream] 流式命令执行完成: exit_code={exit_code}, "
+                f"耗时={execution_time:.3f}秒"
+            )
+            
+            return CommandResult(
+                stdout="",
+                stderr="",
+                exit_code=exit_code,
+                execution_time=execution_time,
+                command=command,
+            )
+        except TimeoutError:
+            raise
+        except ConnectionError:
+            raise
+        except SSHException:
+            raise
+        except Exception as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"[exec_stream] 流式命令执行异常 ({execution_time:.3f}秒): "
+                f"{command} - {e}"
+            )
+            raise RuntimeError(f"流式命令执行失败: {e}") from e
+        finally:
+            if channel:
+                try:
+                    channel.close()
+                except Exception as e:
+                    logger.warning(f"[exec_stream] 关闭通道时出错: {e}")
 
     # ========== 后台任务方法 ==========
 

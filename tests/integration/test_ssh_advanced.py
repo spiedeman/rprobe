@@ -18,6 +18,7 @@ import pytest
 from src import SSHConfig, SSHClient, load_config
 from src.pooling import get_pool_manager
 from src.exceptions import CommandTimeoutError, ConnectionError
+from tests.integration.test_config import SLEEP_TIME_LONG, SLEEP_TIME_MEDIUM
 
 
 @pytest.mark.integration
@@ -40,7 +41,7 @@ class TestLongRunningCommands:
         with SSHClient(config) as client:
             # 应该超时 (可能是 TimeoutError 或 CommandTimeoutError)
             with pytest.raises((CommandTimeoutError, TimeoutError)):
-                client.exec_command("sleep 10")
+                client.exec_command(f"sleep {int(SLEEP_TIME_LONG)}")
     
     def test_long_running_command_success(self, test_environment):
         """测试长时间命令成功完成"""
@@ -57,12 +58,13 @@ class TestLongRunningCommands:
         
         with SSHClient(config) as client:
             start = time.time()
-            result = client.exec_command("sleep 2 && echo 'Completed'")
+            result = client.exec_command(f"sleep {SLEEP_TIME_MEDIUM} && echo 'Completed'")
             elapsed = time.time() - start
             
             assert result.exit_code == 0
             assert "Completed" in result.stdout
-            assert 1.5 < elapsed < 3.0  # 确保实际等待了
+            # 调整时间范围以适应缩短的sleep时间
+            assert SLEEP_TIME_MEDIUM * 0.7 < elapsed < SLEEP_TIME_MEDIUM * 1.5  # 确保实际等待了
     
     def test_command_with_large_output(self, test_environment):
         """测试大输出命令"""

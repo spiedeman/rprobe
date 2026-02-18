@@ -7,7 +7,7 @@ import select
 import socket
 import sys
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 # 从后端导入抽象类型和异常
 from src.backends.base import Channel, Transport
@@ -179,6 +179,9 @@ class AdaptivePollingReceiver:
         empty_poll_count = 0
         current_wait = 0.001  # 初始 1ms
         
+        # 新增：跟踪退出码接收时间
+        exit_code_time = None
+        
         logger.debug(f"开始自适应轮询接收，超时: {timeout}秒")
         
         while True:
@@ -245,13 +248,23 @@ class AdaptivePollingReceiver:
             # 检查退出状态
             if exit_code == -1 and channel.exit_status_ready:
                 exit_code = channel.recv_exit_status()
+                exit_code_time = time.time()  # 记录收到退出码的时间
                 logger.debug(f"收到退出码: {exit_code}")
             
-            # 判断完成
+            # 判断完成 - 改进：收到退出码后继续等待确保所有数据到达
             if exit_code != -1 and not received_any:
                 if not channel.recv_ready() and not channel.recv_stderr_ready():
-                    logger.debug("命令执行完成，所有数据已接收")
-                    break
+                    # 改进：收到退出码后额外等待一段时间，确保所有数据到达
+                    # SSH 通道的数据到达和退出码是异步的
+                    if exit_code_time is None:
+                        exit_code_time = time.time()
+                        logger.debug("收到退出码，等待残留数据...")
+                        continue  # 继续循环，不立即退出
+                    elif time.time() - exit_code_time < 0.5:  # 等待500ms
+                        continue  # 继续等待
+                    else:
+                        logger.debug("命令执行完成，所有数据已接收")
+                        break
             
             # 检查 channel 是否关闭
             if channel.closed:
@@ -334,6 +347,179 @@ class AdaptivePollingReceiver:
         
         logger.debug(f"数据接收完成: stdout={len(stdout_text)}字符, stderr={len(stderr_text)}字符, exit_code={exit_code}")
         return stdout_text, stderr_text, exit_code
+    
+    def recv_stream(
+        self,
+        channel: Channel,
+        chunk_handler: Callable[[bytes, bytes], None],
+        timeout: Optional[float] = None,
+        transport: Optional[Transport] = None
+    ) -> int:
+        """
+        流式接收通道数据
+        
+        实时处理每个数据块，不缓存完整输出，适用于超大数据传输。
+        
+        Args:
+            channel: SSH Channel 对象
+            chunk_handler: 回调函数，接收 (stdout_chunk, stderr_chunk)
+                          每次收到数据块时立即调用
+            timeout: 命令执行总超时
+            transport: SSH Transport 对象
+            
+        Returns:
+            int: 退出码
+            
+        Example:
+            def handle_chunk(stdout, stderr):
+                process.stdout.write(stdout)
+                process.stderr.write(stderr)
+            
+            exit_code = receiver.recv_stream(channel, handle_chunk, timeout=60.0)
+        """
+        timeout = timeout or self._config.command_timeout
+        start_time = time.time()
+        last_activity_time = start_time
+        
+        exit_code = -1
+        exit_code_time = None
+        
+        # 自适应等待参数
+        empty_poll_count = 0
+        current_wait = 0.001
+        
+        logger.debug(f"开始流式接收数据，超时: {timeout}秒")
+        
+        try:
+            while True:
+                # 检查底层连接状态
+                if transport and int((time.time() - start_time) * 100) % 10 == 0:
+                    if not transport.is_active():
+                        logger.error("SSH 传输层连接已断开")
+                        raise ConnectionError("SSH 连接已断开")
+                
+                # 检查全局超时
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"命令执行超过 {timeout} 秒")
+                
+                received_any = False
+                
+                # 尝试读取 stdout
+                try:
+                    if channel.recv_ready():
+                        data = channel.recv(65536)  # 使用更大的缓冲区 64KB
+                        if data:
+                            # 立即通过回调处理数据块
+                            chunk_handler(data, b"")
+                            received_any = True
+                            last_activity_time = time.time()
+                            logger.debug(f"流式接收 {len(data)} 字节 stdout 数据")
+                except socket.timeout:
+                    logger.debug("接收 stdout 超时，继续等待")
+                except socket.error as e:
+                    logger.error(f"接收数据时网络错误: {e}")
+                    raise ConnectionError(f"网络连接错误: {e}") from e
+                
+                # 尝试读取 stderr
+                try:
+                    if channel.recv_stderr_ready():
+                        data = channel.recv_stderr(65536)
+                        if data:
+                            # 立即通过回调处理数据块
+                            chunk_handler(b"", data)
+                            received_any = True
+                            last_activity_time = time.time()
+                            logger.debug(f"流式接收 {len(data)} 字节 stderr 数据")
+                except socket.timeout:
+                    logger.debug("接收 stderr 超时，继续等待")
+                except socket.error as e:
+                    logger.error(f"接收数据时网络错误: {e}")
+                    raise ConnectionError(f"网络连接错误: {e}") from e
+                
+                # 检查退出状态
+                if exit_code == -1 and channel.exit_status_ready:
+                    exit_code = channel.recv_exit_status()
+                    exit_code_time = time.time()
+                    logger.debug(f"收到退出码: {exit_code}")
+                
+                # 判断完成 - 自适应智能等待算法（优化版）
+                if exit_code != -1:
+                    if exit_code_time is None:
+                        exit_code_time = time.time()
+                        last_data_time = time.time()  # 记录最后收到数据的时间
+                        logger.debug(f"收到退出码 {exit_code}，开始自适应等待...")
+                    
+                    # 如果收到新数据，更新最后数据时间
+                    if received_any:
+                        last_data_time = time.time()
+                        empty_poll_count = 0
+                        logger.debug("收到新数据，更新时间戳")
+                        continue
+                    
+                    # 快速检测：如果通道还有数据在等待，立即继续
+                    if channel.recv_ready() or channel.recv_stderr_ready():
+                        continue
+                    
+                    time_since_exit = time.time() - exit_code_time
+                    time_since_last_data = time.time() - last_data_time
+                    
+                    # 核心算法：基于"数据静默期"的判断
+                    # 如果在收到退出码后，连续100ms没有新数据，认为传输完成
+                    # 但最多等待1秒（防止网络抖动）
+                    
+                    if time_since_last_data < 0.1:  # 100ms内有过数据，继续等待
+                        continue
+                    
+                    if time_since_exit < 1.0:  # 最长等待1秒
+                        # 渐进式等待：越往后检查间隔越长
+                        if empty_poll_count < 10:
+                            continue
+                        elif empty_poll_count < 30 and time_since_exit < 0.3:
+                            continue
+                        elif empty_poll_count < 50 and time_since_exit < 0.6:
+                            continue
+                    
+                    # 最终确认：检查是否真的没有数据了
+                    if channel.recv_ready() or channel.recv_stderr_ready():
+                        last_data_time = time.time()
+                        empty_poll_count = 0
+                        continue
+                    
+                    logger.debug(f"流式接收完成，退出码等待 {time_since_exit:.2f} 秒，"
+                               f"最后数据 {time_since_last_data:.3f} 秒前")
+                    break
+                
+                # 检查 channel 是否关闭
+                if channel.closed:
+                    logger.debug("Channel 已关闭")
+                    break
+                
+                # 自适应等待策略
+                if received_any:
+                    empty_poll_count = 0
+                    current_wait = 0.001
+                else:
+                    empty_poll_count += 1
+                    if empty_poll_count < 10:
+                        current_wait = 0.001
+                    elif empty_poll_count < 50:
+                        current_wait = 0.005
+                    elif empty_poll_count < 100:
+                        current_wait = 0.01
+                    else:
+                        current_wait = 0.05
+                    
+                    time.sleep(current_wait)
+        
+        finally:
+            # 确保通道关闭
+            try:
+                if not channel.closed:
+                    channel.close()
+            except:
+                pass
+        
+        return exit_code
 
 
 class BatchedPromptDetector:

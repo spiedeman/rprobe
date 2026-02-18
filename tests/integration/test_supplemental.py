@@ -228,10 +228,10 @@ class TestDataTransmission:
     """测试数据传输"""
     
     def test_large_data_transfer(self, test_environment):
-        """测试大数据传输能力（1MB）"""
+        """测试大数据传输能力（使用流式API，累计500KB）"""
         if not test_environment['has_real_ssh']:
             pytest.skip("未设置真实 SSH 测试环境变量")
-        
+
         config = SSHConfig(
             host=test_environment['test_host'],
             username=test_environment['test_user'],
@@ -240,14 +240,84 @@ class TestDataTransmission:
             command_timeout=60.0,
             max_output_size=10 * 1024 * 1024,  # 10MB
         )
+
+        with SSHClient(config) as client:
+            # 使用流式API测试大数据传输
+            # 这种模式下数据通过回调函数实时处理，不受缓冲区限制
+            total_size = 0
+            received_chunks = []
+
+            def handle_chunk(stdout, stderr):
+                nonlocal total_size
+                if stdout:
+                    total_size += len(stdout)
+                    received_chunks.append(stdout)
+
+            # 生成 500KB 数据
+            target_size = 500000  # 500KB
+            result = client.exec_command_stream(
+                f"yes A | head -c {target_size}",
+                handle_chunk,
+                timeout=60.0
+            )
+
+            # 验证结果
+            assert result.exit_code == 0, f"命令执行失败: exit_code={result.exit_code}"
+            assert total_size == target_size, f"传输大小不正确: {total_size} bytes (期望 {target_size})"
+
+            # 验证数据完整性（检查所有数据块是否都是 'A' 字符）
+            all_data = b''.join(received_chunks)
+            assert len(all_data) == target_size, f"数据块总大小不正确"
+            assert all(c == ord('A') or c == ord('\n') for c in all_data[:1000]), "数据内容不正确"
+    
+    def test_large_data_transfer_streaming_performance(self, test_environment):
+        """测试流式API的性能优势（1MB数据传输）"""
+        if not test_environment['has_real_ssh']:
+            pytest.skip("未设置真实 SSH 测试环境变量")
+        
+        config = SSHConfig(
+            host=test_environment['test_host'],
+            username=test_environment['test_user'],
+            password=test_environment['test_pass'],
+            timeout=30.0,
+            command_timeout=120.0,
+        )
+        
+        import time
         
         with SSHClient(config) as client:
-            # 生成1MB数据
-            result = client.exec_command("dd if=/dev/zero bs=1024 count=1024 | base64 | head -c 1048576")
+            target_size = 1024 * 1024  # 1MB
+            chunk_sizes = []
+            total_received = 0
             
-            # 验证数据大小
-            assert len(result.stdout) > 1000000, f"数据传输不完整: {len(result.stdout)} bytes"
+            def handle_chunk(stdout, stderr):
+                nonlocal total_received
+                if stdout:
+                    chunk_sizes.append(len(stdout))
+                    total_received += len(stdout)
+            
+            start_time = time.time()
+            result = client.exec_command_stream(
+                f"yes B | head -c {target_size}",
+                handle_chunk,
+                timeout=120.0
+            )
+            elapsed = time.time() - start_time
+            
+            # 验证结果
             assert result.exit_code == 0
+            assert total_received == target_size, f"传输不完整: {total_received}/{target_size}"
+            
+            # 验证流式特性（应该有多个数据块）
+            assert len(chunk_sizes) > 1, f"应该分多次接收，实际只收到 {len(chunk_sizes)} 个数据块"
+            
+            print(f"\n流式传输性能测试:")
+            print(f"  总大小: {target_size / 1024:.0f}KB")
+            print(f"  数据块数: {len(chunk_sizes)}")
+            print(f"  平均块大小: {sum(chunk_sizes) / len(chunk_sizes):.0f} bytes")
+            print(f"  最大块: {max(chunk_sizes)} bytes")
+            print(f"  耗时: {elapsed:.2f}s")
+            print(f"  速度: {target_size / 1024 / elapsed:.1f} KB/s")
     
     def test_special_characters_in_command(self, test_environment):
         """测试特殊字符命令处理"""

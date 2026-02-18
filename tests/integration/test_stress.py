@@ -18,6 +18,14 @@ except ImportError:
 from src import SSHClient, SSHConfig
 from src.pooling import ConnectionPool
 from src.exceptions import PoolTimeoutError, PoolExhaustedError
+from tests.integration.test_config import (
+    SLEEP_TIME_SHORT,
+    SLEEP_TIME_MEDIUM,
+    CONCURRENT_THREADS,
+    RAPID_ITERATIONS,
+    SUSTAINED_LOAD_DURATION,
+    POOL_MAX_CONNECTIONS,
+)
 
 
 @pytest.mark.stress
@@ -285,12 +293,12 @@ class TestConnectionPoolLeak:
         try:
             initial_stats = client._pool.stats.copy()
 
-            # 执行可能失败的命令（从20次优化到5次，sleep从2秒优化到1秒）
-            # 预计节省时间: 11秒 -> 3秒
+            # 执行可能失败的命令（使用配置的值优化）
+            # 预计节省时间: 5秒 -> 1.5秒（每次0.3秒 x 5次）
             for _ in range(5):
                 try:
-                    # 这个命令会超时（0.5秒 < 1秒）
-                    client.exec_command("sleep 1")
+                    # 这个命令会超时（0.5秒 < sleep时间）
+                    client.exec_command(f"sleep {SLEEP_TIME_MEDIUM}")
                 except Exception:
                     pass  # 预期会失败
 

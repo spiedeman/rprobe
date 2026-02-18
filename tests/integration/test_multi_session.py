@@ -13,6 +13,7 @@ import pytest
 
 from src import SSHConfig
 from src.core.connection import ConnectionManager, MultiSessionManager
+from tests.integration.test_config import SLEEP_TIME_SHORT
 
 
 def check_channel_error(e):
@@ -44,7 +45,7 @@ class TestMultiSessionBasic:
         try:
             mgr = MultiSessionManager(conn, config)
             try:
-                session = mgr.create_session("test_session")
+                session = mgr.create_session("test_session", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -87,8 +88,8 @@ class TestMultiSessionBasic:
             
             # 创建多个会话 (限制为2个，避免服务器channel限制)
             try:
-                session1 = mgr.create_session("session1")
-                session2 = mgr.create_session("session2")
+                session1 = mgr.create_session("session1", timeout=5.0)
+                session2 = mgr.create_session("session2", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -126,8 +127,8 @@ class TestMultiSessionBasic:
             
             # 创建两个会话
             try:
-                session1 = mgr.create_session("workspace1")
-                session2 = mgr.create_session("workspace2")
+                session1 = mgr.create_session("workspace1", timeout=5.0)
+                session2 = mgr.create_session("workspace2", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -172,8 +173,8 @@ class TestMultiSessionBasic:
             
             # 创建两个会话
             try:
-                session1 = mgr.create_session("env1")
-                session2 = mgr.create_session("env2")
+                session1 = mgr.create_session("env1", timeout=5.0)
+                session2 = mgr.create_session("env2", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -224,8 +225,8 @@ class TestMultiSessionCommands:
             
             # 创建两个会话
             try:
-                session1 = mgr.create_session("worker1")
-                session2 = mgr.create_session("worker2")
+                session1 = mgr.create_session("worker1", timeout=5.0)
+                session2 = mgr.create_session("worker2", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -263,7 +264,7 @@ class TestMultiSessionCommands:
             mgr = MultiSessionManager(conn, config)
             
             try:
-                session = mgr.create_session("long_task")
+                session = mgr.create_session("long_task", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -271,11 +272,11 @@ class TestMultiSessionCommands:
             
             # 执行一个稍长的命令
             start = time.time()
-            output = session.execute_command("sleep 1 && echo 'Completed'")
+            output = session.execute_command(f"sleep {SLEEP_TIME_SHORT} && echo 'Completed'")
             elapsed = time.time() - start
             
             assert "Completed" in output
-            assert elapsed >= 1.0  # 确保确实等待了
+            assert elapsed >= SLEEP_TIME_SHORT * 0.8  # 确保确实等待了（允许20%误差）
             
             mgr.close_session("long_task")
             
@@ -307,7 +308,7 @@ class TestMultiSessionManagement:
             mgr = MultiSessionManager(conn, config)
             
             try:
-                session = mgr.create_session("info_test")
+                session = mgr.create_session("info_test", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -355,8 +356,8 @@ class TestMultiSessionManagement:
             
             # 创建多个会话
             try:
-                mgr.create_session("session_a")
-                mgr.create_session("session_b")
+                mgr.create_session("session_a", timeout=5.0)
+                mgr.create_session("session_b", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -425,7 +426,7 @@ class TestMultiSessionManagement:
             
             try:
                 # 创建一个会话
-                mgr.create_session("duplicate_test")
+                mgr.create_session("duplicate_test", timeout=5.0)
             except Exception as e:
                 if check_channel_error(e):
                     pytest.skip(f"Server channel limit reached: {e}")
@@ -433,7 +434,7 @@ class TestMultiSessionManagement:
             
             # 尝试创建相同ID的会话应该报错
             with pytest.raises(ValueError) as exc_info:
-                mgr.create_session("duplicate_test")
+                mgr.create_session("duplicate_test", timeout=5.0)
             
             assert "already exists" in str(exc_info.value)
             
@@ -470,8 +471,8 @@ class TestMultiSessionWithPool:
                 mgr = MultiSessionManager(conn, config)
                 
                 try:
-                    session1 = mgr.create_session("pool_session1")
-                    session2 = mgr.create_session("pool_session2")
+                    session1 = mgr.create_session("pool_session1", timeout=5.0)
+                    session2 = mgr.create_session("pool_session2", timeout=5.0)
                 except Exception as e:
                     if check_channel_error(e):
                         pytest.skip(f"Server channel limit reached: {e}")

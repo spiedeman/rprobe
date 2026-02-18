@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **后端工厂模式** - BackendFactory支持动态后端注册和创建
 - **抽象异常体系** - 定义与具体SSH库无关的异常类（AuthenticationError, ConnectionError, SSHException, ChannelException）
 - **68个新增测试** - 白盒测试（28个）+ 黑盒测试（24个）+ 集成测试（16个）
+- **流式数据传输API** - `exec_command_stream()` 支持超大数据传输，内存占用O(1)
+- **测试配置集中管理** - 支持环境变量控制测试强度
+- **集成测试优化** - 执行时间从401秒缩短至约120秒（70%提升）
 - 后端架构完整文档（5个新文档）
 
 ### Changed
@@ -23,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `src/receivers/` - 所有接收器使用抽象类型注解
 - **异常处理**：所有异常改为使用抽象层定义的异常类，保持向后兼容
 - **ConnectionError继承**：改为继承Python内置ConnectionError以提高兼容性
+- **优化SSH数据接收逻辑** - 改进流式接收器完成判断
+  - 基于"数据静默期"的智能算法（100ms无数据即完成）
+  - 最大等待时间1秒，平衡速度和可靠性
+  - 渐进式检查间隔减少CPU占用
 
 ### Removed
 - 核心模块中的直接 `import paramiko` 依赖

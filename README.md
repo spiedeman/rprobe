@@ -10,9 +10,11 @@
 
 - **连接池管理** - 连接复用、健康检查、并行创建/关闭
 - **单连接多会话** - 单个SSH连接支持多个独立Shell会话
+- **流式数据处理** - 超大数据传输支持，低内存占用
 - **结构化日志** - JSON格式、上下文绑定
 - **多源配置** - 代码、YAML/JSON、环境变量
 - **性能优化** - 自适应轮询、多种数据接收模式
+- **测试优化** - 集成测试时间缩短70%（401秒→120秒）
 
 ## 快速开始
 
@@ -30,6 +32,22 @@ config = SSHConfig(
 with SSHClient(config, use_pool=True) as client:
     result = client.exec_command("ls -la")
     print(result.stdout)
+
+# 流式处理超大数据（1MB+，低内存占用）
+total_size = 0
+def handle_chunk(stdout, stderr):
+    global total_size
+    if stdout:
+        total_size += len(stdout)
+        # 实时处理数据块，不缓存完整输出
+
+with SSHClient(config) as client:
+    result = client.exec_command_stream(
+        "cat large_file",
+        handle_chunk,
+        timeout=60.0
+    )
+    print(f"传输完成，共接收 {total_size} 字节")
 ```
 
 ## 安装
@@ -63,9 +81,10 @@ TESTING=true python -m pytest tests/unit -v
 ## 项目统计
 
 - **单元测试**: 618个（100%通过）
-- **集成测试**: 82个（98.8%通过）
+- **集成测试**: 145个（100%通过）
 - **代码覆盖率**: 92%
-- **测试执行时间**: ~3.7秒
+- **单元测试执行时间**: ~3.7秒
+- **集成测试执行时间**: ~120秒（优化后，原401秒）
 
 ## 文档
 
@@ -73,6 +92,8 @@ TESTING=true python -m pytest tests/unit -v
 - [项目状态](PROJECT_STATUS.md) - 详细功能说明和测试报告
 - [架构对比](docs/connection_architecture_comparison.md) - 连接池 vs 单连接+多Shell
 - [性能优化](docs/performance_optimization.md) - 性能调优指南
+- [流式API](examples/streaming_api_example.py) - 流式数据传输示例
+- [测试优化](docs/optimization_implementation_report.md) - 集成测试优化报告
 - [变更日志](CHANGELOG.md) - 版本变更记录
 
 ## 许可证
