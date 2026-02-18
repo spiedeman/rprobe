@@ -143,9 +143,10 @@ class StreamExecutor:
         """
         with self._client._pool.get_connection() as conn:
             transport = conn.transport
-            channel = transport.open_session()
+            channel = None
             
             try:
+                channel = transport.open_session()
                 channel.settimeout(cmd_timeout)
                 channel.exec_command(command)
                 
@@ -206,9 +207,10 @@ class StreamExecutor:
         self._client._connection.ensure_connected()
         
         transport = self._client._connection.transport
-        channel = transport.open_session()
+        channel = None
         
         try:
+            channel = transport.open_session()
             channel.settimeout(cmd_timeout)
             channel.exec_command(command)
             
