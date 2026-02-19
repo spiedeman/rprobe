@@ -372,6 +372,10 @@ class MultiSessionManager:
                     except Exception as e:
                         logger.error(f"Error closing session {session_id}: {e}")
 
+            # 清除默认会话
+            if closed_count > 0:
+                self._default_session_id = None
+
             logger.info(f"Closed {closed_count} sessions")
             return closed_count
 
