@@ -21,8 +21,7 @@ import sys
 # 添加src到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src import SSHClient, SSHConfig, load_config
-from src.pooling import get_pool_manager
+from src import SSHClient, SSHConfig
 from src.logging_config import configure_logging, get_logger
 from src.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
 
@@ -51,7 +50,6 @@ def get_config():
         password=password,
         timeout=10.0,
         command_timeout=30.0,
-        recv_mode="auto",
     )
 
 
@@ -137,15 +135,15 @@ def example_3_shell_session():
             # 切换目录
             client.shell_command("cd /tmp")
             result = client.shell_command("pwd")
-            print(f"  $ cd /tmp")
-            print(f"  $ pwd")
+            print("  $ cd /tmp")
+            print("  $ pwd")
             print(f"    当前目录: {result.stdout.strip()}")
 
             # 设置环境变量
             client.shell_command("export DEMO_VAR='HelloRemoteSSH'")
             result = client.shell_command("echo $DEMO_VAR")
-            print(f"  $ export DEMO_VAR='HelloRemoteSSH'")
-            print(f"  $ echo $DEMO_VAR")
+            print("  $ export DEMO_VAR='HelloRemoteSSH'")
+            print("  $ echo $DEMO_VAR")
             print(f"    环境变量: {result.stdout.strip()}")
 
             client.close_shell_session()
@@ -267,7 +265,7 @@ def example_7_pool_close():
     try:
         # 使用连接池执行一些命令
         for i in range(5):
-            result = client.exec_command(f"echo 'Connection test {i}'")
+            client.exec_command(f"echo 'Connection test {i}'")
             print(f"   ✓ 命令{i + 1}执行完成")
     except Exception as e:
         print(f"   ⚠ 命令执行失败（可能是演示环境）: {e}")
@@ -277,7 +275,7 @@ def example_7_pool_close():
     start = time.time()
     client.disconnect()  # 内部调用 pool.close() 使用并行关闭
     close_time = time.time() - start
-    print(f"   ✓ 连接池关闭完成")
+    print("   ✓ 连接池关闭完成")
     print(f"   - 关闭耗时: {close_time:.3f}s")
     print(f"   - 平均每个连接: {close_time / 10:.3f}s")
 
@@ -322,7 +320,7 @@ def example_8_background_tasks():
             if task.is_running():
                 print(f"   ✓ 任务运行中，已运行 {task.duration:.1f} 秒")
             elif task.is_completed():
-                print(f"   ✓ 任务已完成")
+                print("   ✓ 任务已完成")
 
             print("\n4. 获取任务摘要（轻量级）:")
             summary = task.get_summary(tail_lines=3)
@@ -423,7 +421,7 @@ def example_10_connection_factory():
                         break
                     stdout += data
 
-                print(f"   ✓ Channel 创建成功")
+                print("   ✓ Channel 创建成功")
                 print(f"   ✓ 输出: {stdout.decode().strip()}")
             # 自动关闭 channel
 
@@ -438,7 +436,7 @@ def example_10_connection_factory():
 
                 # 读取响应
                 response = channel.recv(1024)
-                print(f"   ✓ Shell channel 创建成功")
+                print("   ✓ Shell channel 创建成功")
                 if response:
                     print(f"   ✓ 响应: {response.decode().strip()}")
             # 自动关闭 channel
