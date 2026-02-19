@@ -5,7 +5,6 @@
 import logging
 import select
 import socket
-import sys
 import time
 from typing import Optional, Tuple, Callable
 

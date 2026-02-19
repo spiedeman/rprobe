@@ -9,7 +9,7 @@ import uuid
 import logging
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional, List, Iterator, Callable, Dict
+from typing import Optional, List, Iterator, Dict
 from datetime import datetime
 
 from src.core.models import CommandResult
