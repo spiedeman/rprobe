@@ -1,6 +1,7 @@
 """
 Channel Receiver 模块简化补充测试
 """
+
 import socket
 from unittest.mock import Mock
 
@@ -43,10 +44,7 @@ class TestRecvOnceExtended:
     def test_recv_once_exact_at_limit(self):
         """测试恰好达到限制"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            max_output_size=100
+            host="test.example.com", username="user", password="pass", max_output_size=100
         )
         receiver = ChannelDataReceiver(config)
 
@@ -62,10 +60,7 @@ class TestRecvOnceExtended:
     def test_recv_once_partial_truncation(self):
         """测试部分截断"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            max_output_size=100
+            host="test.example.com", username="user", password="pass", max_output_size=100
         )
         receiver = ChannelDataReceiver(config)
 
@@ -81,10 +76,7 @@ class TestRecvOnceExtended:
     def test_recv_once_zero_allowed(self):
         """测试允许0字节时的截断"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            max_output_size=100
+            host="test.example.com", username="user", password="pass", max_output_size=100
         )
         receiver = ChannelDataReceiver(config)
 
@@ -132,10 +124,7 @@ class TestRecvAllExtended:
     def test_recv_all_with_both_outputs(self):
         """测试同时接收stdout和stderr"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         receiver = ChannelDataReceiver(config)
 
@@ -157,10 +146,7 @@ class TestRecvAllExtended:
     def test_recv_all_transport_disconnect(self):
         """测试传输层断开"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         receiver = ChannelDataReceiver(config)
 
@@ -179,10 +165,7 @@ class TestRecvAllExtended:
     def test_recv_all_with_exit_code(self):
         """测试获取exit code"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         receiver = ChannelDataReceiver(config)
 
@@ -200,10 +183,7 @@ class TestRecvAllExtended:
     def test_recv_all_uses_config_timeout(self):
         """测试使用配置的超时"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.01
+            host="test.example.com", username="user", password="pass", command_timeout=0.01
         )
         receiver = ChannelDataReceiver(config)
 
@@ -223,7 +203,7 @@ class TestRecvAllExtended:
             username="user",
             password="pass",
             encoding="utf-8",
-            command_timeout=0.1
+            command_timeout=0.1,
         )
         receiver = ChannelDataReceiver(config)
 
@@ -247,7 +227,7 @@ class TestRecvAllExtended:
             username="user",
             password="pass",
             max_output_size=10,
-            command_timeout=0.1
+            command_timeout=0.1,
         )
         receiver = ChannelDataReceiver(config)
 

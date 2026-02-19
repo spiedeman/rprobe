@@ -6,6 +6,7 @@ MultiSessionManager 扩展功能单元测试
 - 默认会话管理
 - 向后兼容性
 """
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 import threading
@@ -94,7 +95,9 @@ class TestMultiSessionManagerCreateSession:
     """测试创建会话功能"""
 
     @patch("src.session.shell_session.ShellSession")
-    def test_create_session_with_connection(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_create_session_with_connection(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试直连模式创建会话"""
         manager = MultiSessionManager(
             connection=mock_connection,
@@ -153,7 +156,9 @@ class TestMultiSessionManagerCreateSession:
         assert "session_1" in manager._sessions
 
     @patch("src.session.shell_session.ShellSession")
-    def test_create_session_duplicate_id_raises_error(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_create_session_duplicate_id_raises_error(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试重复会话 ID 应该报错"""
         manager = MultiSessionManager(
             connection=mock_connection,
@@ -199,7 +204,9 @@ class TestMultiSessionManagerDefaultSession:
         assert manager.get_default_session() == mock_session
 
     @patch("src.session.shell_session.ShellSession")
-    def test_create_session_auto_set_default(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_create_session_auto_set_default(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试创建第一个会话自动设为默认"""
         manager = MultiSessionManager(
             connection=mock_connection,
@@ -217,7 +224,9 @@ class TestMultiSessionManagerDefaultSession:
         assert manager.get_default_session_id() == "first"
 
     @patch("src.session.shell_session.ShellSession")
-    def test_create_session_set_as_default_parameter(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_create_session_set_as_default_parameter(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试 set_as_default 参数"""
         manager = MultiSessionManager(
             connection=mock_connection,
@@ -239,7 +248,9 @@ class TestMultiSessionManagerDefaultSession:
         assert manager.get_default_session_id() == "second"
 
     @patch("src.session.shell_session.ShellSession")
-    def test_close_session_updates_default(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_close_session_updates_default(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试关闭默认会话时更新默认"""
         manager = MultiSessionManager(
             connection=mock_connection,
@@ -349,7 +360,9 @@ class TestMultiSessionManagerThreadSafety:
     """测试线程安全性"""
 
     @patch("src.session.shell_session.ShellSession")
-    def test_concurrent_create_session(self, mock_shell_session_class, mock_connection, mock_config):
+    def test_concurrent_create_session(
+        self, mock_shell_session_class, mock_connection, mock_config
+    ):
         """测试并发创建会话"""
         manager = MultiSessionManager(
             connection=mock_connection,

@@ -141,9 +141,7 @@ class StructuredLogger(logging.Logger):
         new_logger.filters = self.filters
         return new_logger
 
-    def _log_with_context(
-        self, level: int, msg: str, args: tuple, kwargs: dict
-    ) -> None:
+    def _log_with_context(self, level: int, msg: str, args: tuple, kwargs: dict) -> None:
         """记录带上下文的日志"""
         # 合并上下文到extra
         extra = kwargs.get("extra", {})

@@ -17,9 +17,7 @@ class BackendFactory:
     _default_backend: Optional[str] = None
 
     @classmethod
-    def register(
-        cls, name: str, backend_class: Type[SSHBackend], default: bool = False
-    ) -> None:
+    def register(cls, name: str, backend_class: Type[SSHBackend], default: bool = False) -> None:
         """注册后端"""
         cls._backends[name] = backend_class
         if default or cls._default_backend is None:

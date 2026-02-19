@@ -1,6 +1,7 @@
 """
 CommandResult 单元测试
 """
+
 import pytest
 
 from src.core.models import CommandResult
@@ -16,9 +17,9 @@ class TestCommandResult:
             stderr="",
             exit_code=0,
             execution_time=0.123,
-            command="echo 'Hello World'"
+            command="echo 'Hello World'",
         )
-        
+
         assert result.success is True
         assert result.exit_code == 0
         assert result.stdout == "Hello World\n"
@@ -33,9 +34,9 @@ class TestCommandResult:
             stderr="Error: file not found",
             exit_code=1,
             execution_time=0.045,
-            command="cat nonexistent"
+            command="cat nonexistent",
         )
-        
+
         assert result.success is False
         assert result.exit_code == 1
         assert "Error" in result.stderr
@@ -43,15 +44,11 @@ class TestCommandResult:
     def test_string_representation(self):
         """测试字符串表示"""
         result = CommandResult(
-            stdout="output",
-            stderr="error",
-            exit_code=0,
-            execution_time=1.234,
-            command="test_cmd"
+            stdout="output", stderr="error", exit_code=0, execution_time=1.234, command="test_cmd"
         )
-        
+
         str_repr = str(result)
-        
+
         assert "test_cmd" in str_repr
         assert "成功" in str_repr
         assert "0" in str_repr  # exit_code
@@ -62,7 +59,7 @@ class TestCommandResult:
         result1 = CommandResult("out", "err", 0, 0.1, "cmd")
         result2 = CommandResult("out", "err", 0, 0.1, "cmd")
         result3 = CommandResult("out", "err", 1, 0.1, "cmd")
-        
+
         assert result1 == result2
         assert result1 != result3
 
@@ -74,9 +71,9 @@ class TestCommandResult:
             stderr="",
             exit_code=0,
             execution_time=5.0,
-            command="generate_large_output"
+            command="generate_large_output",
         )
-        
+
         assert len(result.stdout) == 10000
         assert result.success is True
 
@@ -87,13 +84,9 @@ class TestEdgeCases:
     def test_empty_output(self):
         """测试空输出"""
         result = CommandResult(
-            stdout="",
-            stderr="",
-            exit_code=0,
-            execution_time=0.001,
-            command="true"
+            stdout="", stderr="", exit_code=0, execution_time=0.001, command="true"
         )
-        
+
         assert result.stdout == ""
         assert result.success is True
 
@@ -101,14 +94,10 @@ class TestEdgeCases:
         """测试多行输出"""
         stdout = "line1\nline2\nline3\n"
         result = CommandResult(
-            stdout=stdout,
-            stderr="",
-            exit_code=0,
-            execution_time=0.1,
-            command="echo_multiple"
+            stdout=stdout, stderr="", exit_code=0, execution_time=0.1, command="echo_multiple"
         )
-        
-        lines = result.stdout.strip().split('\n')
+
+        lines = result.stdout.strip().split("\n")
         assert len(lines) == 3
 
     def test_unicode_output(self):
@@ -118,9 +107,9 @@ class TestEdgeCases:
             stderr="错误信息",
             exit_code=0,
             execution_time=0.1,
-            command="echo_unicode"
+            command="echo_unicode",
         )
-        
+
         assert "你好世界" in result.stdout
         assert "🌍" in result.stdout
         assert "错误信息" in result.stderr
@@ -128,12 +117,8 @@ class TestEdgeCases:
     def test_zero_execution_time(self):
         """测试零执行时间"""
         result = CommandResult(
-            stdout="",
-            stderr="",
-            exit_code=0,
-            execution_time=0.0,
-            command="instant"
+            stdout="", stderr="", exit_code=0, execution_time=0.0, command="instant"
         )
-        
+
         assert result.execution_time == 0.0
         assert "0.000" in str(result)

@@ -1,6 +1,7 @@
 """
 Pytest 配置和共享夹具
 """
+
 import os
 from unittest.mock import Mock, MagicMock
 
@@ -15,26 +16,22 @@ def pytest_addoption(parser):
         "--run-integration",
         action="store_true",
         default=False,
-        help="运行集成测试（需要真实 SSH 服务器）"
+        help="运行集成测试（需要真实 SSH 服务器）",
     )
 
 
 def pytest_configure(config):
     """配置 pytest"""
-    config.addinivalue_line(
-        "markers", "integration: 标记为集成测试（需要真实 SSH 服务器）"
-    )
+    config.addinivalue_line("markers", "integration: 标记为集成测试（需要真实 SSH 服务器）")
     # 设置测试环境变量，用于跳过某些验证
-    os.environ['TESTING'] = 'true'
+    os.environ["TESTING"] = "true"
 
 
 def pytest_collection_modifyitems(config, items):
     """修改测试收集"""
     if not config.getoption("--run-integration"):
         # 跳过集成测试目录中的测试
-        skip_integration = pytest.mark.skip(
-            reason="需要 --run-integration 选项来运行集成测试"
-        )
+        skip_integration = pytest.mark.skip(reason="需要 --run-integration 选项来运行集成测试")
         for item in items:
             if "integration" in item.nodeid:
                 item.add_marker(skip_integration)
@@ -109,6 +106,7 @@ def mock_backend():
 def mock_channel():
     """创建 mock Channel（抽象层）"""
     from src.backends.base import Channel
+
     channel = Mock(spec=Channel)
     channel.closed = False
     channel.recv_ready.return_value = False
@@ -122,10 +120,10 @@ def mock_channel():
 def test_environment():
     """检查测试环境变量"""
     return {
-        'has_real_ssh': os.environ.get('TEST_REAL_SSH', 'false').lower() == 'true',
-        'test_host': os.environ.get('TEST_SSH_HOST', 'localhost'),
-        'test_user': os.environ.get('TEST_SSH_USER', 'test'),
-        'test_pass': os.environ.get('TEST_SSH_PASS', ''),
+        "has_real_ssh": os.environ.get("TEST_REAL_SSH", "false").lower() == "true",
+        "test_host": os.environ.get("TEST_SSH_HOST", "localhost"),
+        "test_user": os.environ.get("TEST_SSH_USER", "test"),
+        "test_pass": os.environ.get("TEST_SSH_PASS", ""),
     }
 
 
@@ -133,10 +131,12 @@ def test_environment():
 # Mock 工厂 Fixture
 # ============================================================================
 
+
 @pytest.fixture
 def mock_factory():
     """提供 SSHMockFactory 类"""
     from tests.utils.mock_factories import SSHMockFactory
+
     return SSHMockFactory
 
 
@@ -144,6 +144,7 @@ def mock_factory():
 def mock_builder():
     """提供 MockBuilder 类"""
     from tests.utils.mock_factories import MockBuilder
+
     return MockBuilder()
 
 
@@ -151,4 +152,5 @@ def mock_builder():
 def mock_ssh_setup():
     """创建完整的 Mock SSH 设置 (client, transport, channel)"""
     from tests.utils.mock_factories import create_mock_ssh_setup
+
     return create_mock_ssh_setup

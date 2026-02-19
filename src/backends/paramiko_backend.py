@@ -60,9 +60,7 @@ class ParamikoChannel:
     def exec_command(self, command: str) -> None:
         self._channel.exec_command(command)
 
-    def get_pty(
-        self, term: str = "vt100", width: int = 80, height: int = 24
-    ) -> None:
+    def get_pty(self, term: str = "vt100", width: int = 80, height: int = 24) -> None:
         self._channel.get_pty(term, width, height)
 
     def invoke_shell(self) -> None:
@@ -165,7 +163,7 @@ class ParamikoBackend(SSHBackend):
                 auth_method = "key"
             else:
                 auth_method = "unknown"
-            
+
             logger.debug(f"使用 {auth_method} 认证方式")
 
             self._client.connect(**connect_kwargs)

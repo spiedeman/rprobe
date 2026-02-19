@@ -31,13 +31,16 @@ from src.pooling import ConnectionPool, get_pool_manager
 # 延迟导入避免循环依赖
 _stream_executor_class = None
 
+
 def _get_stream_executor_class():
     """延迟获取 StreamExecutor 类"""
     global _stream_executor_class
     if _stream_executor_class is None:
         from src.core.stream_executor import StreamExecutor
+
         _stream_executor_class = StreamExecutor
     return _stream_executor_class
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +48,12 @@ logger = logging.getLogger(__name__)
 # 延迟导入避免循环依赖
 _background_manager_class = None
 
+
 def _get_background_manager_class():
     global _background_manager_class
     if _background_manager_class is None:
         from src.async_executor import BackgroundTaskManager
+
         _background_manager_class = BackgroundTaskManager
     return _background_manager_class
 
@@ -148,7 +153,7 @@ class SSHClient:
         """
         # 停止所有后台任务
         self.stop_all_background()
-        
+
         # 关闭所有 shell 会话
         self.close_all_shell_sessions()
 
@@ -209,7 +214,7 @@ class SSHClient:
             )
 
             # 获取提示符（从 session 对象）
-            prompt = session.prompt if hasattr(session, 'prompt') else ""
+            prompt = session.prompt if hasattr(session, "prompt") else ""
 
             logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
             return prompt
@@ -327,10 +332,7 @@ class SSHClient:
     def _exec_with_pool(self, command: str, cmd_timeout: float, start_time: float) -> CommandResult:
         """使用连接池执行命令（使用 ConnectionFactory）"""
         with ConnectionFactory.create_exec_channel(
-            connection_source=self._pool,
-            use_pool=True,
-            command=command,
-            timeout=cmd_timeout
+            connection_source=self._pool, use_pool=True, command=command, timeout=cmd_timeout
         ) as channel:
             transport = channel.get_transport()
             stdout_data, stderr_data, exit_code = self._receiver.recv_all(
@@ -398,39 +400,39 @@ class SSHClient:
         self,
         command: str,
         chunk_handler: Callable[[bytes, bytes], None],
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> CommandResult:
         """
         流式执行命令，实时处理数据块
-        
+
         适用于超大数据传输，避免内存占用过高。
         通过回调函数实时处理每个数据块。
-        
+
         注意：这是外观方法，实际执行逻辑在 StreamExecutor 中。
-        
+
         Args:
             command: 要执行的命令
             chunk_handler: 回调函数，接收 (stdout_chunk, stderr_chunk)
                           每次收到数据块时调用
             timeout: 命令执行超时（秒）
-            
+
         Returns:
             CommandResult: 命令执行结果（stdout/stderr 为空字符串，
                           数据已通过 chunk_handler 处理）
-            
+
         Raises:
             TimeoutError: 命令执行超时
             ConnectionError: 连接断开
             RuntimeError: 其他执行错误
-            
+
         Example:
             total_size = 0
-            
+
             def handle_chunk(stdout, stderr):
                 global total_size
                 total_size += len(stdout)
                 print(f"收到 {len(stdout)} 字节")
-            
+
             result = client.exec_command_stream(
                 "cat large_file",
                 handle_chunk,
@@ -449,7 +451,7 @@ class SSHClient:
         command: str,
         name: Optional[str] = None,
         buffer_size_mb: float = 10.0,
-        cleanup_delay: float = 3600.0
+        cleanup_delay: float = 3600.0,
     ):
         """
         启动后台任务（非阻塞执行长时间命令）
@@ -493,10 +495,7 @@ class SSHClient:
             self._bg_manager = manager_class(self)
 
         return self._bg_manager.run(
-            command,
-            name=name,
-            buffer_size_mb=buffer_size_mb,
-            cleanup_delay=cleanup_delay
+            command, name=name, buffer_size_mb=buffer_size_mb, cleanup_delay=cleanup_delay
         )
 
     @property

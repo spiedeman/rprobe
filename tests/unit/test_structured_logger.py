@@ -1,6 +1,7 @@
 """
 测试 StructuredLogger 的结构化字段功能
 """
+
 import json
 import logging
 from io import StringIO
@@ -40,11 +41,7 @@ class TestStructuredLoggerFields:
 
         # 使用结构化字段
         logger.info(
-            "command_executed",
-            command="ls -la",
-            duration_ms=150,
-            exit_code=0,
-            host="example.com"
+            "command_executed", command="ls -la", duration_ms=150, exit_code=0, host="example.com"
         )
 
         # 解析JSON输出
@@ -69,7 +66,7 @@ class TestStructuredLoggerFields:
             float_field=3.14,
             bool_field=True,
             list_field=["a", "b", "c"],
-            dict_field={"key": "value"}
+            dict_field={"key": "value"},
         )
 
         log_output = log_stream.getvalue()
@@ -90,10 +87,7 @@ class TestStructuredLoggerFields:
         context_logger = logger.bind(request_id="abc123", user="admin")
 
         # 使用上下文logger
-        context_logger.info(
-            "operation_completed",
-            operation="delete"
-        )
+        context_logger.info("operation_completed", operation="delete")
 
         log_output = log_stream.getvalue()
         log_data = json.loads(log_output.strip())
@@ -131,7 +125,7 @@ class TestStructuredLoggerFields:
         logger.critical("critical_msg", custom_field="critical")
 
         # 解析多行JSON
-        log_lines = log_stream.getvalue().strip().split('\n')
+        log_lines = log_stream.getvalue().strip().split("\n")
         logs = [json.loads(line) for line in log_lines]
 
         # 验证每个级别都有自定义字段
@@ -160,7 +154,7 @@ class TestStructuredLoggerFields:
             lineno=1,
             msg="test_message",
             args=(),
-            exc_info=None
+            exc_info=None,
         )
         # 添加自定义字段
         record.custom_field = "custom_value"
@@ -177,27 +171,24 @@ class TestStructuredLoggerFields:
         """测试 configure_logging 与自定义处理器的集成"""
         import logging
         from io import StringIO
-        
+
         # 创建自定义处理器
         log_stream = StringIO()
         handler = logging.StreamHandler(log_stream)
-        
+
         # 配置日志
         configure_logging(level="INFO", format="simple")
         logger = get_logger("integration_test")
-        
+
         # 添加自定义处理器
         logger.addHandler(handler)
-        
-        logger.info(
-            "integration_test",
-            custom_data="test_value"
-        )
-        
+
+        logger.info("integration_test", custom_data="test_value")
+
         # 验证消息被记录
         log_output = log_stream.getvalue()
         assert "integration_test" in log_output
-        
+
         # 清理处理器
         logger.removeHandler(handler)
 
@@ -225,12 +216,7 @@ class TestStructuredLoggerEdgeCases:
         """测试 Unicode 字符在字段中"""
         logger, log_stream = setup_json_logger
 
-        logger.info(
-            "unicode_test",
-            chinese="中文",
-            emoji="🎉",
-            special="café"
-        )
+        logger.info("unicode_test", chinese="中文", emoji="🎉", special="café")
 
         log_output = log_stream.getvalue()
         log_data = json.loads(log_output.strip())
@@ -244,10 +230,7 @@ class TestStructuredLoggerEdgeCases:
         logger, log_stream = setup_json_logger
 
         logger.info(
-            "special_chars",
-            field_with_underscore="value1",
-            field123="value2",
-            FIELD_UPPER="value3"
+            "special_chars", field_with_underscore="value1", field123="value2", FIELD_UPPER="value3"
         )
 
         log_output = log_stream.getvalue()
@@ -261,11 +244,7 @@ class TestStructuredLoggerEdgeCases:
         """测试 None 值在字段中"""
         logger, log_stream = setup_json_logger
 
-        logger.info(
-            "none_test",
-            null_field=None,
-            valid_field="value"
-        )
+        logger.info("none_test", null_field=None, valid_field="value")
 
         log_output = log_stream.getvalue()
         log_data = json.loads(log_output.strip())

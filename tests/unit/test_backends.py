@@ -17,6 +17,7 @@ from src.backends import (
 # 尝试导入ParamikoBackend，可能不可用
 try:
     from src.backends.paramiko_backend import ParamikoBackend
+
     PARAMIKO_AVAILABLE = True
 except ImportError:
     PARAMIKO_AVAILABLE = False
@@ -66,9 +67,7 @@ class TestParamikoBackend:
         import paramiko
 
         mock_client = Mock()
-        mock_client.connect.side_effect = paramiko.AuthenticationException(
-            "Auth failed"
-        )
+        mock_client.connect.side_effect = paramiko.AuthenticationException("Auth failed")
         mock_client_class.return_value = mock_client
 
         backend = ParamikoBackend()

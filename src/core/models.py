@@ -1,6 +1,7 @@
 """
 SSH 模块的数据模型
 """
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -9,7 +10,7 @@ from typing import Optional
 class CommandResult:
     """
     命令执行结果
-    
+
     Attributes:
         stdout: 标准输出内容
         stderr: 标准错误内容
@@ -17,18 +18,18 @@ class CommandResult:
         execution_time: 执行耗时（秒）
         command: 执行的命令
     """
-    
+
     stdout: str
     stderr: str
     exit_code: int
     execution_time: float
     command: str
-    
+
     @property
     def success(self) -> bool:
         """检查命令是否成功执行"""
         return self.exit_code == 0
-    
+
     def __str__(self) -> str:
         """返回结果摘要"""
         status = "成功" if self.success else "失败"

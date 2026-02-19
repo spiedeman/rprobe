@@ -2,6 +2,7 @@
 SSH 连接管理模块
 提供 SSH 连接的生命周期管理
 """
+
 import logging
 import threading
 import time
@@ -44,9 +45,7 @@ class ConnectionManager:
         self._config = config
         # 使用传入的后端或从工厂创建
         self._backend = backend or BackendFactory.create()
-        logger.debug(
-            f"ConnectionManager初始化完成，使用后端: {type(self._backend).__name__}"
-        )
+        logger.debug(f"ConnectionManager初始化完成，使用后端: {type(self._backend).__name__}")
 
     @property
     def is_connected(self) -> bool:

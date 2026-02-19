@@ -553,7 +553,9 @@ class ConnectionPool:
         # 串行关闭连接，避免并发问题
         for conn in connections:
             if time.time() > deadline:
-                logger.warning(f"关闭连接超时，剩余 {len(connections) - connections.index(conn)} 个连接未关闭")
+                logger.warning(
+                    f"关闭连接超时，剩余 {len(connections) - connections.index(conn)} 个连接未关闭"
+                )
                 break
 
             try:

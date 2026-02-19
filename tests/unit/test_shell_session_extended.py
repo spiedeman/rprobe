@@ -2,6 +2,7 @@
 Shell Session 模块简化补充测试
 只测试简单可靠的场景
 """
+
 import socket
 from unittest.mock import Mock
 
@@ -103,10 +104,7 @@ class TestShellSessionInitialize:
     def test_initialize_basic(self):
         """测试基本初始化"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         mock_channel = Mock()
         mock_channel.recv_ready.side_effect = [True, False]
@@ -122,10 +120,7 @@ class TestShellSessionInitialize:
     def test_initialize_uses_default_timeout(self):
         """测试使用默认超时初始化"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         mock_channel = Mock()
         mock_channel.recv_ready.side_effect = [True, False]
@@ -140,10 +135,7 @@ class TestShellSessionInitialize:
     def test_initialize_learns_prompt(self):
         """测试初始化学习提示符"""
         config = SSHConfig(
-            host="test.example.com",
-            username="user",
-            password="pass",
-            command_timeout=0.1
+            host="test.example.com", username="user", password="pass", command_timeout=0.1
         )
         mock_channel = Mock()
         mock_channel.recv_ready.side_effect = [True, False]
@@ -177,7 +169,8 @@ class TestShellSessionClose:
         session = ShellSession(mock_channel, config)
         session._prompt_detector._last_prompt = "test"
         import re
-        session._prompt_detector._learned_patterns.append(re.compile(r'test'))
+
+        session._prompt_detector._learned_patterns.append(re.compile(r"test"))
         session._prompt_detector._learned_prompts.append("test")
 
         session.close()
