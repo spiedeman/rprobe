@@ -26,7 +26,6 @@ from src.pooling import get_pool_manager
 from src.logging_config import configure_logging, get_logger
 from src.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
 
-
 # 配置日志
 configure_logging(level="INFO", format="colored")
 logger = get_logger(__name__)
@@ -203,9 +202,7 @@ def example_5_parallel_creation():
 
     print("\n1. 串行创建5个连接:")
     start = time.time()
-    client_serial = SSHClient(
-        config, use_pool=True, max_size=5, min_size=5, parallel_init=False
-    )
+    client_serial = SSHClient(config, use_pool=True, max_size=5, min_size=5, parallel_init=False)
     serial_time = time.time() - start
     stats = client_serial._pool.stats
     print(f"   创建{stats['created']}个连接耗时: {serial_time:.3f}s")
@@ -213,9 +210,7 @@ def example_5_parallel_creation():
 
     print("\n2. 并行创建5个连接:")
     start = time.time()
-    client_parallel = SSHClient(
-        config, use_pool=True, max_size=5, min_size=5, parallel_init=True
-    )
+    client_parallel = SSHClient(config, use_pool=True, max_size=5, min_size=5, parallel_init=True)
     parallel_time = time.time() - start
     stats = client_parallel._pool.stats
     print(f"   创建{stats['created']}个连接耗时: {parallel_time:.3f}s")
@@ -233,9 +228,7 @@ def example_6_config_management():
     print("=" * 60)
 
     print("\n1. 从代码创建配置:")
-    config1 = SSHConfig(
-        host="server1.example.com", username="admin", password="secret", port=2222
-    )
+    config1 = SSHConfig(host="server1.example.com", username="admin", password="secret", port=2222)
     print(f"   ✓ {config1}")
 
     print("\n2. 配置复制和修改:")
@@ -256,7 +249,6 @@ def example_7_pool_close():
     print("=" * 60)
 
     config = get_config()
-    config = SSHConfig(host="debian13.local", username="spiedy", password="bhr0204")
 
     print("\n1. 创建包含10个连接的连接池:")
     client = SSHClient(
@@ -300,16 +292,178 @@ def example_7_pool_close():
     print("   • 方式3: pool.close(timeout=5.0) - 手动关闭")
 
 
+def example_8_background_tasks():
+    """示例8: 后台任务执行器（v1.4.0新功能）"""
+    print("\n" + "=" * 60)
+    print("示例8: 后台任务执行器（v1.4.0新功能）")
+    print("=" * 60)
+
+    config = get_config()
+
+    try:
+        with SSHClient(config) as client:
+            print("\n1. 启动后台任务（模拟长时间运行的监控）:")
+            # 启动一个后台任务（例如：持续监控日志）
+            task = client.bg(
+                'for i in $(seq 1 5); do echo "Log entry $i"; sleep 1; done',
+                name="log_monitor",
+                buffer_size_mb=1,  # 1MB 缓冲区限制
+            )
+            print(f"   ✓ 后台任务已启动: ID={task.id}")
+            print(f"   ✓ 任务名称: {task.name}")
+            print(f"   ✓ 命令: {task.command}")
+
+            print("\n2. 主线程继续执行其他工作:")
+            for i in range(3):
+                print(f"   • 主线程工作 {i + 1}/3...")
+                time.sleep(0.5)
+
+            print("\n3. 检查任务状态:")
+            if task.is_running():
+                print(f"   ✓ 任务运行中，已运行 {task.duration:.1f} 秒")
+            elif task.is_completed():
+                print(f"   ✓ 任务已完成")
+
+            print("\n4. 获取任务摘要（轻量级）:")
+            summary = task.get_summary(tail_lines=3)
+            print(f"   - 状态: {summary.status}")
+            print(f"   - 时长: {summary.duration:.1f}秒")
+            print(f"   - 输出行数: {summary.lines_output}")
+            print(f"   - 最后3行预览: {summary.last_lines}")
+
+            print("\n5. 停止后台任务:")
+            if task.is_running():
+                task.stop(graceful=True, timeout=3.0)
+                print("   ✓ 任务已优雅停止")
+
+            print("\n6. 查看完整输出:")
+            output = task.get_output()
+            if output:
+                lines = output.strip().split("\n")
+                print(f"   总输出: {len(lines)} 行")
+                print(f"   首行: {lines[0] if lines else 'N/A'}")
+
+    except Exception as e:
+        print(f"   ⚠ 演示失败: {e}")
+        print("   提示: 后台任务执行器需要真实SSH连接")
+
+
+def example_9_streaming_transfer():
+    """示例9: 流式数据传输（v1.4.0功能）"""
+    print("\n" + "=" * 60)
+    print("示例9: 流式数据传输（大文件处理）")
+    print("=" * 60)
+
+    config = get_config()
+
+    try:
+        with SSHClient(config) as client:
+            print("\n1. 流式接收数据（适合大文件）:")
+
+            received_chunks = []
+            total_bytes = 0
+
+            def data_handler(stdout_chunk, stderr_chunk):
+                """数据块处理回调"""
+                nonlocal total_bytes
+                if stdout_chunk:
+                    received_chunks.append(stdout_chunk)
+                    total_bytes += len(stdout_chunk)
+                    # 实时处理，例如：写入文件、解析等
+
+            # 执行命令并流式接收
+            print("   执行命令: seq 1 1000")
+            result = client.exec_command_stream(
+                "seq 1 1000",
+                chunk_handler=data_handler,
+                timeout=30.0,
+            )
+
+            print(f"   ✓ 命令执行完成，退出码: {result.exit_code}")
+            print(f"   ✓ 接收数据块: {len(received_chunks)} 个")
+            print(f"   ✓ 总字节数: {total_bytes} bytes")
+
+            print("\n2. 内存占用对比:")
+            print("   传统方式: 加载整个输出到内存")
+            print("   流式方式: 每次只处理一个数据块（64KB）")
+            print("   优势: 处理 GB 级文件也只需要 MB 级内存")
+
+    except Exception as e:
+        print(f"   ⚠ 演示失败: {e}")
+
+
+def example_10_connection_factory():
+    """示例10: ConnectionFactory 使用（v1.4.0新功能）"""
+    print("\n" + "=" * 60)
+    print("示例10: ConnectionFactory - 统一Channel创建")
+    print("=" * 60)
+
+    from src.core.connection_factory import ConnectionFactory
+
+    config = get_config()
+
+    try:
+        with SSHClient(config) as client:
+            print("\n1. 使用 ConnectionFactory 创建 exec channel:")
+
+            # 获取 transport
+            transport = client._connection.transport
+
+            # 使用工厂创建 channel（自动管理生命周期）
+            with ConnectionFactory.create_exec_channel(
+                transport=transport,
+                command="echo 'Hello from ConnectionFactory'",
+                timeout=30.0,
+            ) as channel:
+                # 读取输出
+                stdout = b""
+                while True:
+                    data = channel.recv(4096)
+                    if not data:
+                        break
+                    stdout += data
+
+                print(f"   ✓ Channel 创建成功")
+                print(f"   ✓ 输出: {stdout.decode().strip()}")
+            # 自动关闭 channel
+
+            print("\n2. 使用 ConnectionFactory 创建 shell channel:")
+            with ConnectionFactory.create_shell_channel(
+                transport=transport,
+                timeout=60.0,
+            ) as channel:
+                # 发送命令
+                channel.send("pwd\n")
+                time.sleep(0.5)
+
+                # 读取响应
+                response = channel.recv(1024)
+                print(f"   ✓ Shell channel 创建成功")
+                if response:
+                    print(f"   ✓ 响应: {response.decode().strip()}")
+            # 自动关闭 channel
+
+            print("\n3. 错误处理优势:")
+            print("   即使发生异常，channel 也会自动关闭")
+            print("   避免资源泄漏")
+
+    except Exception as e:
+        print(f"   ⚠ 演示失败: {e}")
+
+
 def run_all_examples():
     """运行所有示例"""
     examples = [
-        # ("基本命令执行", example_1_basic_command),
-        # ("连接池性能对比", example_2_connection_pool),
-        # ("Shell会话状态保持", example_3_shell_session),
-        # ("错误处理", example_4_error_handling),
-        # ("并行创建连接", example_5_parallel_creation),
-        # ("配置管理", example_6_config_management),
+        ("基本命令执行", example_1_basic_command),
+        ("连接池性能对比", example_2_connection_pool),
+        ("Shell会话状态保持", example_3_shell_session),
+        ("错误处理", example_4_error_handling),
+        ("并行创建连接", example_5_parallel_creation),
+        ("配置管理", example_6_config_management),
         ("连接池并行关闭", example_7_pool_close),
+        ("后台任务执行器", example_8_background_tasks),
+        ("流式数据传输", example_9_streaming_transfer),
+        ("ConnectionFactory", example_10_connection_factory),
     ]
 
     print("\n" + "=" * 60)
