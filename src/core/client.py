@@ -208,8 +208,8 @@ class SSHClient:
                 set_as_default=True,  # 如果没有默认会话，设为默认
             )
 
-            # 获取提示符（从 session 的 prompt_detector）
-            prompt = session.prompt_detector.detect_prompt() if hasattr(session, 'prompt_detector') else ""
+            # 获取提示符（从 session 对象）
+            prompt = session.prompt if hasattr(session, 'prompt') else ""
 
             logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
             return prompt
@@ -356,29 +356,33 @@ class SSHClient:
         self._connection.ensure_connected()
 
         transport = self._connection.transport
-        channel = transport.open_session()
 
         try:
-            channel.settimeout(cmd_timeout)
-            channel.exec_command(command)
-
-            stdout_data, stderr_data, exit_code = self._receiver.recv_all(
-                channel, timeout=cmd_timeout, transport=transport
-            )
-
-            execution_time = time.time() - start_time
-
-            logger.info(
-                f"[exec] 命令执行完成: exit_code={exit_code}, " f"耗时={execution_time:.3f}秒"
-            )
-
-            return CommandResult(
-                stdout=stdout_data,
-                stderr=stderr_data,
-                exit_code=exit_code,
-                execution_time=execution_time,
+            # 使用 ConnectionFactory 创建 channel（统一封装 channel 生命周期管理）
+            with ConnectionFactory.create_exec_channel(
+                connection_source=self._connection,
+                use_pool=False,
                 command=command,
-            )
+                timeout=cmd_timeout,
+                transport=transport,
+            ) as channel:
+                stdout_data, stderr_data, exit_code = self._receiver.recv_all(
+                    channel, timeout=cmd_timeout, transport=transport
+                )
+
+                execution_time = time.time() - start_time
+
+                logger.info(
+                    f"[exec] 命令执行完成: exit_code={exit_code}, " f"耗时={execution_time:.3f}秒"
+                )
+
+                return CommandResult(
+                    stdout=stdout_data,
+                    stderr=stderr_data,
+                    exit_code=exit_code,
+                    execution_time=execution_time,
+                    command=command,
+                )
         except TimeoutError:
             raise
         except ConnectionError:
@@ -389,12 +393,6 @@ class SSHClient:
             execution_time = time.time() - start_time
             logger.error(f"[exec] 命令执行异常 ({execution_time:.3f}秒): {command} - {e}")
             raise RuntimeError(f"命令执行失败: {e}") from e
-        finally:
-            if channel:
-                try:
-                    channel.close()
-                except Exception as e:
-                    logger.warning(f"[exec] 关闭通道时出错: {e}")
 
     def exec_command_stream(
         self,

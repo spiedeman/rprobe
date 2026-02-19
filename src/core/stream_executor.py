@@ -27,6 +27,7 @@ from typing import Callable, Optional, TYPE_CHECKING
 
 from src.config.models import SSHConfig
 from src.core.models import CommandResult
+from src.core.connection_factory import ConnectionFactory
 from src.receivers.smart_receiver import SmartChannelReceiver, create_receiver
 
 if TYPE_CHECKING:
@@ -141,44 +142,38 @@ class StreamExecutor:
         Returns:
             CommandResult: 命令执行结果
         """
-        with self._client._pool.get_connection() as conn:
-            transport = conn.transport
-            channel = None
+        # 使用 ConnectionFactory 管理 channel 生命周期
+        with ConnectionFactory.create_exec_channel(
+            connection_source=self._client._pool,
+            use_pool=True,
+            command=command,
+            timeout=cmd_timeout,
+        ) as channel:
+            transport = channel.get_transport()
             
-            try:
-                channel = transport.open_session()
-                channel.settimeout(cmd_timeout)
-                channel.exec_command(command)
-                
-                # 使用接收器流式获取数据
-                exit_code = self._receiver.recv_stream(
-                    channel,
-                    chunk_handler,
-                    timeout=cmd_timeout,
-                    transport=transport
-                )
-                
-                execution_time = time.time() - start_time
-                
-                logger.info(
-                    f"[StreamExecutor] 流式命令执行完成: exit_code={exit_code}, "
-                    f"耗时={execution_time:.3f}秒"
-                )
-                
-                # 返回空字符串作为 stdout/stderr，因为数据已通过回调处理
-                return CommandResult(
-                    stdout="",
-                    stderr="",
-                    exit_code=exit_code,
-                    execution_time=execution_time,
-                    command=command,
-                )
-            finally:
-                if channel:
-                    try:
-                        channel.close()
-                    except Exception as e:
-                        logger.warning(f"[StreamExecutor] 关闭通道时出错: {e}")
+            # 使用接收器流式获取数据
+            exit_code = self._receiver.recv_stream(
+                channel,
+                chunk_handler,
+                timeout=cmd_timeout,
+                transport=transport
+            )
+            
+            execution_time = time.time() - start_time
+            
+            logger.info(
+                f"[StreamExecutor] 流式命令执行完成: exit_code={exit_code}, "
+                f"耗时={execution_time:.3f}秒"
+            )
+            
+            # 返回空字符串作为 stdout/stderr，因为数据已通过回调处理
+            return CommandResult(
+                stdout="",
+                stderr="",
+                exit_code=exit_code,
+                execution_time=execution_time,
+                command=command,
+            )
     
     def _execute_direct(
         self,
@@ -204,38 +199,39 @@ class StreamExecutor:
             ConnectionError: SSH 连接断开
             RuntimeError: 其他执行错误
         """
-        self._client._connection.ensure_connected()
-        
-        transport = self._client._connection.transport
-        channel = None
-        
         try:
-            channel = transport.open_session()
-            channel.settimeout(cmd_timeout)
-            channel.exec_command(command)
-            
-            # 使用接收器流式获取数据
-            exit_code = self._receiver.recv_stream(
-                channel,
-                chunk_handler,
-                timeout=cmd_timeout,
-                transport=transport
-            )
-            
-            execution_time = time.time() - start_time
-            
-            logger.info(
-                f"[StreamExecutor] 流式命令执行完成: exit_code={exit_code}, "
-                f"耗时={execution_time:.3f}秒"
-            )
-            
-            return CommandResult(
-                stdout="",
-                stderr="",
-                exit_code=exit_code,
-                execution_time=execution_time,
+            # 使用 ConnectionFactory 管理 channel 生命周期
+            # ConnectionFactory 内部会调用 ensure_connected
+            with ConnectionFactory.create_exec_channel(
+                connection_source=self._client._connection,
+                use_pool=False,
                 command=command,
-            )
+                timeout=cmd_timeout,
+            ) as channel:
+                transport = channel.get_transport()
+                
+                # 使用接收器流式获取数据
+                exit_code = self._receiver.recv_stream(
+                    channel,
+                    chunk_handler,
+                    timeout=cmd_timeout,
+                    transport=transport
+                )
+                
+                execution_time = time.time() - start_time
+                
+                logger.info(
+                    f"[StreamExecutor] 流式命令执行完成: exit_code={exit_code}, "
+                    f"耗时={execution_time:.3f}秒"
+                )
+                
+                return CommandResult(
+                    stdout="",
+                    stderr="",
+                    exit_code=exit_code,
+                    execution_time=execution_time,
+                    command=command,
+                )
         except TimeoutError:
             raise
         except ConnectionError:
@@ -247,9 +243,3 @@ class StreamExecutor:
                 f"{command} - {e}"
             )
             raise RuntimeError(f"流式命令执行失败: {e}") from e
-        finally:
-            if channel:
-                try:
-                    channel.close()
-                except Exception as e:
-                    logger.warning(f"[StreamExecutor] 关闭通道时出错: {e}")

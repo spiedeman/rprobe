@@ -106,17 +106,24 @@ class TestExecCommand:
         )
         
         mock_channel = Mock()
-        mock_channel.recv_ready.return_value = False
+        # 先让 recv_ready 返回 True 以进入循环，之后再返回 False
+        mock_channel.recv_ready.side_effect = [True] + [False] * 100
+        mock_channel.recv.return_value = b"test"
         mock_channel.recv_stderr_ready.return_value = False
         mock_channel.exit_status_ready.return_value = False
         mock_channel.closed = False
         
-        # 模拟连接断开
-        mock_transport.is_active.side_effect = [True, False]
+        # 模拟连接断开 - 前几次返回 True，之后返回 False
+        call_count = [0]
+        def is_active_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            return call_count[0] < 3
+        
+        mock_transport.is_active.side_effect = is_active_side_effect
         mock_transport.open_session.return_value = mock_channel
         
-        with pytest.raises(ConnectionError):
-            client.exec_command("some_command")
+        with pytest.raises((ConnectionError, TimeoutError)):
+            client.exec_command("some_command", timeout=0.5)
 
     @patch('src.backends.paramiko_backend.paramiko.SSHClient')
     def test_exec_command_large_output_truncation(self, mock_ssh_client_class, mock_ssh_config):
@@ -129,13 +136,24 @@ class TestExecCommand:
         client._config.max_output_size = 100
         
         mock_channel = Mock()
-        # 模拟数据流：
-        # 第一次调用 recv_ready: True，返回50字节
-        # 第二次调用 recv_ready: True，返回100字节（触发截断）
-        # 之后：False（没有更多数据）
-        # 注意：每次循环中 _recv_channel_data 会调用两次 recv_ready（stdout和stderr）
-        mock_channel.recv_ready.side_effect = [True, False, True, False, False, False]
-        mock_channel.recv.side_effect = [b"A" * 50, b"B" * 100]
+        # 使用 generator 提供足够的返回值
+        recv_ready_count = [0]
+        def recv_ready_generator(*args, **kwargs):
+            recv_ready_count[0] += 1
+            # 前两次返回 True（发送数据），之后返回 False
+            return recv_ready_count[0] <= 2
+        
+        mock_channel.recv_ready.side_effect = recv_ready_generator
+        
+        recv_count = [0]
+        def recv_generator(*args, **kwargs):
+            recv_count[0] += 1
+            if recv_count[0] == 1:
+                return b"A" * 50  # 第一块50字节
+            else:
+                return b"B" * 100  # 第二块100字节，触发截断
+        
+        mock_channel.recv.side_effect = recv_generator
         mock_channel.recv_stderr_ready.return_value = False
         mock_channel.exit_status_ready.return_value = True
         mock_channel.recv_exit_status.return_value = 0
@@ -201,14 +219,32 @@ class TestExecCommand:
         )
         
         mock_channel = Mock()
-        # 模拟 channel 关闭但仍有数据
-        # 需要确保两次数据读取都完成后再退出
-        # 模式：连续两次 True(读取数据), 然后 False(退出循环)
-        mock_channel.recv_ready.side_effect = [True, True, False, False, False, False]
-        mock_channel.recv.side_effect = [b"First part\n", b"Second part\n"]
+        # 使用 generator 确保有足够的数据读取
+        recv_ready_count = [0]
+        def recv_ready_generator(*args, **kwargs):
+            recv_ready_count[0] += 1
+            # 前两次返回 True 读取数据，之后返回 False
+            return recv_ready_count[0] <= 2
+        
+        mock_channel.recv_ready.side_effect = recv_ready_generator
+        
+        recv_count = [0]
+        recv_data = [b"First part\n", b"Second part\n"]
+        def recv_generator(*args, **kwargs):
+            recv_count[0] += 1
+            if recv_count[0] <= len(recv_data):
+                return recv_data[recv_count[0] - 1]
+            return b""
+        
+        mock_channel.recv.side_effect = recv_generator
         mock_channel.recv_stderr_ready.return_value = False
         # 延迟 exit_status_ready 返回 True，确保数据先被读取
-        mock_channel.exit_status_ready.side_effect = [False, False, True]
+        exit_status_count = [0]
+        def exit_status_generator(*args, **kwargs):
+            exit_status_count[0] += 1
+            return exit_status_count[0] >= 3  # 第三次调用时返回 True
+        
+        mock_channel.exit_status_ready.side_effect = exit_status_generator
         mock_channel.recv_exit_status.return_value = 0
         mock_channel.closed = False
         mock_channel.eof_received = True

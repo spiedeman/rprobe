@@ -127,3 +127,28 @@ def test_environment():
         'test_user': os.environ.get('TEST_SSH_USER', 'test'),
         'test_pass': os.environ.get('TEST_SSH_PASS', ''),
     }
+
+
+# ============================================================================
+# Mock 工厂 Fixture
+# ============================================================================
+
+@pytest.fixture
+def mock_factory():
+    """提供 SSHMockFactory 类"""
+    from tests.utils.mock_factories import SSHMockFactory
+    return SSHMockFactory
+
+
+@pytest.fixture
+def mock_builder():
+    """提供 MockBuilder 类"""
+    from tests.utils.mock_factories import MockBuilder
+    return MockBuilder()
+
+
+@pytest.fixture
+def mock_ssh_setup():
+    """创建完整的 Mock SSH 设置 (client, transport, channel)"""
+    from tests.utils.mock_factories import create_mock_ssh_setup
+    return create_mock_ssh_setup

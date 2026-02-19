@@ -100,6 +100,7 @@ class TaskSummary:
     lines_output: int
     lines_stderr: int
     bytes_output: int
+    bytes_stderr: int
     last_lines: List[str]  # 最后几行用于快速查看
     remote_files: List[str]  # 检测到的远程文件路径
     start_time: datetime

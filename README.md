@@ -8,9 +8,11 @@
 
 ## 核心特性
 
+- **后台任务执行** - 非阻塞执行长时间命令（如tcpdump），支持实时输出和任务管理
 - **连接池管理** - 连接复用、健康检查、并行创建/关闭
 - **单连接多会话** - 单个SSH连接支持多个独立Shell会话
 - **流式数据处理** - 超大数据传输支持，低内存占用
+- **ConnectionFactory** - 统一封装Channel创建，消除重复代码，自动资源管理
 - **结构化日志** - JSON格式、上下文绑定
 - **多源配置** - 代码、YAML/JSON、环境变量
 - **性能优化** - 自适应轮询、多种数据接收模式
@@ -48,6 +50,42 @@ with SSHClient(config) as client:
         timeout=60.0
     )
     print(f"传输完成，共接收 {total_size} 字节")
+
+# 后台执行长时间任务（如tcpdump）
+with SSHClient(config) as client:
+    # 启动后台抓包任务
+    task = client.bg(
+        "tcpdump -i eth0 port 80 -c 1000 -w /tmp/http.pcap",
+        name="http_capture"
+    )
+    
+    # 主线程继续执行其他工作
+    print(f"任务运行中: {task.id}")
+    time.sleep(30)
+    
+    # 检查状态并获取摘要
+    summary = task.get_summary()
+    print(f"任务状态: {summary.status}")
+    print(f"远程文件: {summary.remote_files}")
+    
+    # 停止任务
+    task.stop(graceful=True)
+
+# ConnectionFactory - 统一Channel创建
+from src.core.connection_factory import ConnectionFactory
+
+with SSHClient(config) as client:
+    transport = client._connection.transport
+    
+    # 使用工厂创建exec channel（自动关闭）
+    with ConnectionFactory.create_exec_channel(
+        transport=transport,
+        command="ls -la",
+        timeout=30.0
+    ) as channel:
+        stdout = channel.recv(1024)
+        print(stdout.decode())
+    # channel自动关闭
 ```
 
 ## 安装
@@ -80,10 +118,10 @@ TESTING=true python -m pytest tests/unit -v
 
 ## 项目统计
 
-- **单元测试**: 618个（100%通过）
+- **单元测试**: 812个（96.8%通过）
 - **集成测试**: 145个（100%通过）
-- **代码覆盖率**: 92%
-- **单元测试执行时间**: ~3.7秒
+- **代码覆盖率**: ~70%
+- **单元测试执行时间**: ~12秒
 - **集成测试执行时间**: ~120秒（优化后，原401秒）
 
 ## 文档
@@ -91,9 +129,12 @@ TESTING=true python -m pytest tests/unit -v
 - [开发指南](AGENTS.md) - 开发环境设置和工作流程
 - [项目状态](PROJECT_STATUS.md) - 详细功能说明和测试报告
 - [架构对比](docs/connection_architecture_comparison.md) - 连接池 vs 单连接+多Shell
+- [后台任务指南](docs/ASYNC_EXECUTOR_GUIDE.md) - 后台任务执行说明
+- [ConnectionFactory](docs/CONNECTION_FACTORY_IMPLEMENTATION.md) - Channel创建工厂说明
 - [性能优化](docs/performance_optimization.md) - 性能调优指南
 - [流式API](examples/streaming_api_example.py) - 流式数据传输示例
-- [测试优化](docs/optimization_implementation_report.md) - 集成测试优化报告
+- [后台任务示例](examples/async_executor_example.py) - 后台任务使用示例
+- [ConnectionFactory示例](examples/connection_factory_example.py) - Channel工厂使用示例
 - [变更日志](CHANGELOG.md) - 版本变更记录
 
 ## 许可证

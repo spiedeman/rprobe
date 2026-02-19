@@ -232,7 +232,9 @@ class TestAdaptivePollingReceiver:
         mock_channel.recv_exit_status.return_value = 0
         mock_channel.closed = True  # 数据接收完后关闭
         
-        with patch('time.time', side_effect=[0, 0.001, 0.002, 0.003, 11]):
+        # 提供足够的时间值，防止循环中耗尽
+        time_values = [i * 0.001 for i in range(100)] + [11]
+        with patch('time.time', side_effect=time_values):
             with patch('time.sleep'):  # 跳过实际睡眠
                 stdout, stderr, exit_code = receiver.recv_all(mock_channel, timeout=10)
         
@@ -312,7 +314,9 @@ class TestAdaptivePollingReceiver:
         mock_channel.recv_exit_status.return_value = 0
         mock_channel.closed = True
         
-        with patch('time.time', side_effect=[0, 1, 2, 11]):
+        # 提供足够的时间值
+        time_values = [i * 0.01 for i in range(100)] + [11]
+        with patch('time.time', side_effect=time_values):
             with patch('time.sleep'):
                 stdout, stderr, exit_code = receiver.recv_all(mock_channel, timeout=10)
         
@@ -404,7 +408,9 @@ class TestAdaptivePollingReceiver:
         mock_channel.recv_exit_status.return_value = 0
         mock_channel.closed = True
         
-        with patch('time.time', side_effect=[0, 1, 11]):
+        # 提供足够的时间值
+        time_values = [i * 0.01 for i in range(100)] + [11]
+        with patch('time.time', side_effect=time_values):
             with patch('time.sleep'):
                 stdout, stderr, exit_code = receiver.recv_all(mock_channel, timeout=10)
         
