@@ -22,6 +22,7 @@ from src.backends import AuthenticationError, SSHException, ConnectionError
 from src.config.models import SSHConfig
 from src.core.models import CommandResult
 from src.core.connection import ConnectionManager, MultiSessionManager
+from src.core.connection_factory import ConnectionFactory
 from src.receivers.smart_receiver import SmartChannelReceiver, create_receiver
 from src.session.shell_session import ShellSession
 from src.patterns.prompt_detector import PromptDetector
@@ -324,38 +325,31 @@ class SSHClient:
             return self._exec_direct(command, cmd_timeout, start_time)
 
     def _exec_with_pool(self, command: str, cmd_timeout: float, start_time: float) -> CommandResult:
-        """使用连接池执行命令"""
-        with self._pool.get_connection() as conn:
-            transport = conn.transport
-            channel = transport.open_session()
+        """使用连接池执行命令（使用 ConnectionFactory）"""
+        with ConnectionFactory.create_exec_channel(
+            connection_source=self._pool,
+            use_pool=True,
+            command=command,
+            timeout=cmd_timeout
+        ) as channel:
+            transport = channel.get_transport()
+            stdout_data, stderr_data, exit_code = self._receiver.recv_all(
+                channel, timeout=cmd_timeout, transport=transport
+            )
 
-            try:
-                channel.settimeout(cmd_timeout)
-                channel.exec_command(command)
+            execution_time = time.time() - start_time
 
-                stdout_data, stderr_data, exit_code = self._receiver.recv_all(
-                    channel, timeout=cmd_timeout, transport=transport
-                )
+            logger.info(
+                f"[exec] 命令执行完成: exit_code={exit_code}, " f"耗时={execution_time:.3f}秒"
+            )
 
-                execution_time = time.time() - start_time
-
-                logger.info(
-                    f"[exec] 命令执行完成: exit_code={exit_code}, " f"耗时={execution_time:.3f}秒"
-                )
-
-                return CommandResult(
-                    stdout=stdout_data,
-                    stderr=stderr_data,
-                    exit_code=exit_code,
-                    execution_time=execution_time,
-                    command=command,
-                )
-            finally:
-                if channel:
-                    try:
-                        channel.close()
-                    except Exception as e:
-                        logger.warning(f"[exec] 关闭通道时出错: {e}")
+            return CommandResult(
+                stdout=stdout_data,
+                stderr=stderr_data,
+                exit_code=exit_code,
+                execution_time=execution_time,
+                command=command,
+            )
 
     def _exec_direct(self, command: str, cmd_timeout: float, start_time: float) -> CommandResult:
         """直接执行命令（不使用连接池）"""
