@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-02-19
+
+### Added
+- **后台任务执行器** - 非阻塞执行长时间命令（如tcpdump）
+  - `SSHClient.bg()` 方法启动后台任务
+  - 字节限制环形缓冲区（默认10MB）防止内存溢出
+  - 任务完成自动记录日志，1小时后自动清理
+  - 支持通过名称管理多个后台任务
+  - 优雅停止和强制停止选项
+  - 轻量级摘要接口 `get_summary()`，不下载完整输出
+- **ConnectionFactory** - 统一封装Channel创建，消除重复代码
+  - 支持多种Channel类型：exec、shell
+  - 使用上下文管理器确保资源正确释放
+  - 支持连接池和直接连接两种模式
+  - 自动错误处理和清理
+- **98个新增测试** - 大幅提升测试覆盖率
+  - `test_async_executor.py` - 48个测试（81.86%覆盖率）
+  - `test_performance_monitor.py` - 19个测试（86.67%覆盖率）
+  - `test_connection_factory.py` - 31个测试（91.45%覆盖率）
+  - `test_channel_receiver_optimized_extended.py` - 补充测试
+- **Mock工厂** - 提供标准化的Mock对象创建
+  - `SSHMockFactory` - 创建Transport、Channel、SSHClient等Mock
+  - `MockBuilder` - 链式API构建复杂Mock
+  - `create_mock_ssh_setup()` - 一键创建完整SSH环境
+- **代码质量工具**
+  - `.flake8` 配置文件（与black兼容）
+  - `scripts/check_quality.sh` - 自动化代码质量检查
+
+### Changed
+- **代码格式化** - 使用black格式化87个文件
+- **测试修复** - 修复`test_retry_backoff_delay`，移除全局time.sleep patch
+- **Bug修复** - `TaskSummary`添加缺少的`bytes_stderr`字段
+- **文档更新** - README.md添加新特性说明和示例
+
+### Removed
+- 清理14个临时文档文件
+
+## [1.3.0] - 2026-02-15
+
 ### Added
 - **可插拔后端架构** - 创建SSHBackend抽象基类，支持多种SSH库实现
 - **Paramiko后端实现** - 将paramiko封装为独立后端模块
