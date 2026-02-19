@@ -22,8 +22,7 @@ class TestSSHClientInit:
         assert client._config == mock_ssh_config
         assert client._pool is None
         assert client._connection is not None
-        assert client._shell_sessions == {}
-        assert client._default_session_id is None
+        assert client._session_manager is not None
         assert not client._use_pool
 
     def test_init_with_pool(self, mock_ssh_config):
@@ -33,8 +32,7 @@ class TestSSHClientInit:
         assert client._config == mock_ssh_config
         assert client._pool is not None
         assert client._connection is None
-        assert client._shell_sessions == {}
-        assert client._default_session_id is None
+        assert client._session_manager is not None
         assert client._use_pool is True
 
 
@@ -190,14 +188,19 @@ class TestSSHSessions:
         assert client.shell_session_active is False
         assert client.shell_session_count == 0
         
-        # 模拟打开会话
-        client._shell_sessions["test-session"] = mock_session
-        client._default_session_id = "test-session"
+        # 测试：由于现在使用 MultiSessionManager，我们需要 Mock 它的方法
+        # 设置默认会话
+        client._session_manager._sessions["test-session"] = mock_session
+        client._session_manager._default_session_id = "test-session"
+        
         assert client.shell_session_active is True
         assert client.shell_session_count == 1
         assert "test-session" in client.shell_sessions
         
-        # 模拟关闭会话
+        # 模拟关闭会话 - 通过修改状态
         mock_session.is_active = False
+        # 重新检查（由于我们直接修改了 _sessions，应该生效）
+        # 注意：由于 shell_session_active 使用 get_default_session() 检查
+        # 需要确保 mock_session.is_active 为 False
         assert client.shell_session_active is False
         assert client.shell_session_count == 0

@@ -5,7 +5,7 @@ SSH 连接管理模块
 import logging
 import threading
 import time
-from typing import Optional, List, Dict, TYPE_CHECKING
+from typing import Optional, List, Dict, TYPE_CHECKING, Any
 from dataclasses import dataclass, field
 
 # 移除：import paramiko
@@ -199,26 +199,48 @@ class MultiSessionManager:
     """
     多会话管理器
 
-    在单个 SSH 连接上管理多个独立的 Shell 会话。
+    管理多个独立的 Shell 会话，支持单个连接或连接池模式。
     每个会话都有自己的 channel 和状态，完全独立。
     """
 
-    def __init__(self, connection: ConnectionManager, config: SSHConfig):
+    def __init__(
+        self,
+        connection: Optional[ConnectionManager] = None,
+        config: Optional[SSHConfig] = None,
+        use_pool: bool = False,
+        pool: Optional[Any] = None,
+    ):
         """
         初始化多会话管理器
 
         Args:
-            connection: SSH 连接管理器
+            connection: SSH 连接管理器（直连模式必需）
             config: SSH 配置
+            use_pool: 是否使用连接池模式
+            pool: 连接池实例（连接池模式必需）
+
+        Raises:
+            ValueError: 参数配置无效
         """
+        if use_pool and pool is None:
+            raise ValueError("使用连接池模式时必须提供 pool 参数")
+        if not use_pool and connection is None:
+            raise ValueError("直连模式时必须提供 connection 参数")
+
         self._connection = connection
         self._config = config
+        self._use_pool = use_pool
+        self._pool = pool
         self._sessions: Dict[str, SessionInfo] = {}
         self._lock = threading.RLock()
         self._session_counter = 0
+        self._default_session_id: Optional[str] = None
 
     def create_session(
-        self, session_id: Optional[str] = None, timeout: Optional[float] = None
+        self,
+        session_id: Optional[str] = None,
+        timeout: Optional[float] = None,
+        set_as_default: bool = False,
     ) -> "ShellSession":
         """
         创建新的 Shell 会话
@@ -226,6 +248,7 @@ class MultiSessionManager:
         Args:
             session_id: 会话 ID（可选，自动生成）
             timeout: 初始化超时时间
+            set_as_default: 是否设为默认会话
 
         Returns:
             ShellSession: 新的 Shell 会话
@@ -245,10 +268,17 @@ class MultiSessionManager:
             if session_id in self._sessions:
                 raise ValueError(f"Session '{session_id}' already exists")
 
-            # 打开新的 channel (使用 open_channel，让 ShellSession.initialize 来初始化)
-            channel = self._connection.open_channel(timeout)
+            # 根据模式获取 channel
+            if self._use_pool:
+                # 连接池模式
+                channel = self._create_channel_from_pool(timeout)
+            else:
+                # 直连模式
+                channel = self._connection.open_channel(timeout)
 
             # 创建 ShellSession
+            if self._config is None:
+                raise RuntimeError("Config is required to create session")
             shell_session = ShellSession(channel, self._config)
             shell_session.initialize(timeout)
 
@@ -258,8 +288,26 @@ class MultiSessionManager:
             )
             self._sessions[session_id] = session_info
 
+            # 设置默认会话
+            if set_as_default or self._default_session_id is None:
+                self._default_session_id = session_id
+
             logger.info(f"Created shell session: {session_id}")
             return shell_session
+
+    def _create_channel_from_pool(self, timeout: Optional[float] = None) -> Channel:
+        """从连接池创建 channel"""
+        if self._pool is None:
+            raise RuntimeError("Connection pool is not available")
+
+        conn = self._pool.get_connection()
+        try:
+            channel = conn.open_channel(timeout)
+            return channel
+        except Exception:
+            # 如果创建失败，确保连接被正确释放
+            conn.close()
+            raise
 
     def get_session(self, session_id: str) -> Optional["ShellSession"]:
         """
@@ -296,6 +344,10 @@ class MultiSessionManager:
             try:
                 session_info.shell_session.close()
                 session_info.is_active = False
+
+                # 更新默认会话
+                self._update_default_session(session_id)
+
                 logger.info(f"Closed session: {session_id}")
                 return True
             except Exception as e:
@@ -382,3 +434,76 @@ class MultiSessionManager:
         """活跃会话数"""
         with self._lock:
             return sum(1 for info in self._sessions.values() if info.is_active)
+
+    # ========== 默认会话管理 ==========
+
+    def set_default_session(self, session_id: str) -> None:
+        """
+        设置默认会话
+
+        Args:
+            session_id: 会话 ID
+
+        Raises:
+            ValueError: 会话不存在或未激活
+        """
+        with self._lock:
+            session_info = self._sessions.get(session_id)
+            if not session_info:
+                raise ValueError(f"Session '{session_id}' does not exist")
+            if not session_info.is_active:
+                raise ValueError(f"Session '{session_id}' is not active")
+
+            self._default_session_id = session_id
+            logger.debug(f"Set default session: {session_id}")
+
+    def get_default_session(self) -> Optional["ShellSession"]:
+        """
+        获取默认会话
+
+        Returns:
+            Optional[ShellSession]: 默认会话对象，如果没有则返回 None
+        """
+        with self._lock:
+            if self._default_session_id is None:
+                return None
+
+            session_info = self._sessions.get(self._default_session_id)
+            if not session_info or not session_info.is_active:
+                self._default_session_id = None
+                return None
+
+            return session_info.shell_session
+
+    def get_default_session_id(self) -> Optional[str]:
+        """
+        获取默认会话 ID
+
+        Returns:
+            Optional[str]: 默认会话 ID
+        """
+        return self._default_session_id
+
+    def clear_default_session(self) -> None:
+        """清除默认会话设置"""
+        with self._lock:
+            self._default_session_id = None
+
+    def _update_default_session(self, closed_session_id: str) -> None:
+        """
+        当会话关闭时更新默认会话
+
+        Args:
+            closed_session_id: 被关闭的会话 ID
+        """
+        with self._lock:
+            if self._default_session_id == closed_session_id:
+                # 查找其他活跃的会话作为新的默认
+                for sid, info in self._sessions.items():
+                    if info.is_active and sid != closed_session_id:
+                        self._default_session_id = sid
+                        logger.debug(f"Updated default session to: {sid}")
+                        return
+
+                # 没有其他活跃会话
+                self._default_session_id = None

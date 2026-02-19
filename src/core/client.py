@@ -21,7 +21,7 @@ from src.backends import AuthenticationError, SSHException, ConnectionError
 
 from src.config.models import SSHConfig
 from src.core.models import CommandResult
-from src.core.connection import ConnectionManager
+from src.core.connection import ConnectionManager, MultiSessionManager
 from src.receivers.smart_receiver import SmartChannelReceiver, create_receiver
 from src.session.shell_session import ShellSession
 from src.patterns.prompt_detector import PromptDetector
@@ -101,9 +101,6 @@ class SSHClient:
         self._config = config
         self._use_pool = use_pool
         self._receiver = create_receiver(config)
-        # 支持多个 Shell 会话
-        self._shell_sessions: Dict[str, ShellSession] = {}
-        self._default_session_id: Optional[str] = None
         # 后台任务管理器
         self._bg_manager = None
 
@@ -119,6 +116,14 @@ class SSHClient:
             logger.debug(
                 f"SSHClient 初始化完成: {config.host}:{config.port}, 接收模式: {self._receiver.mode}"
             )
+
+        # 初始化多会话管理器（统一处理 Shell 会话）
+        self._session_manager = MultiSessionManager(
+            connection=self._connection if not use_pool else None,
+            config=config,
+            use_pool=use_pool,
+            pool=self._pool if use_pool else None,
+        )
 
     def connect(self) -> None:
         """
@@ -164,20 +169,18 @@ class SSHClient:
     @property
     def shell_session_active(self) -> bool:
         """检查默认 shell 会话是否活跃（向后兼容）"""
-        if self._default_session_id:
-            session = self._shell_sessions.get(self._default_session_id)
-            return session is not None and session.is_active
-        return False
+        default_session = self._session_manager.get_default_session()
+        return default_session is not None
 
     @property
     def shell_sessions(self) -> List[str]:
         """获取所有活跃的 shell 会话 ID 列表"""
-        return [sid for sid, session in self._shell_sessions.items() if session.is_active]
+        return self._session_manager.list_sessions()
 
     @property
     def shell_session_count(self) -> int:
         """获取活跃 shell 会话数量"""
-        return len(self.shell_sessions)
+        return self._session_manager.active_session_count
 
     def open_shell_session(
         self, timeout: Optional[float] = None, session_id: Optional[str] = None
@@ -192,45 +195,26 @@ class SSHClient:
         Returns:
             str: 检测到的 shell 提示符
         """
-        # 生成会话 ID
+        # 生成会话 ID（如果未提供）
         if session_id is None:
             session_id = str(uuid.uuid4())[:8]
 
-        # 检查会话 ID 是否已存在
-        if session_id in self._shell_sessions and self._shell_sessions[session_id].is_active:
-            raise RuntimeError(f"Shell 会话 '{session_id}' 已存在，请先关闭")
-
         try:
-            if self._use_pool:
-                # 使用连接池获取连接
-                with self._pool.get_connection() as conn:
-                    channel = conn.open_channel(timeout)
-                    prompt_detector = PromptDetector()
-                    session = ShellSession(channel, self._config, prompt_detector)
-                    prompt = session.initialize(timeout)
-                    self._shell_sessions[session_id] = session
-                    # 设置默认会话（如果还没有）
-                    if self._default_session_id is None:
-                        self._default_session_id = session_id
-                    logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
-                    return prompt
-            else:
-                # 直接使用连接
-                self._connection.ensure_connected()
-                channel = self._connection.open_channel(timeout)
-                prompt_detector = PromptDetector()
-                session = ShellSession(channel, self._config, prompt_detector)
-                prompt = session.initialize(timeout)
-                self._shell_sessions[session_id] = session
-                # 设置默认会话（如果还没有）
-                if self._default_session_id is None:
-                    self._default_session_id = session_id
-                logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
-                return prompt
+            # 使用 MultiSessionManager 创建会话
+            session = self._session_manager.create_session(
+                session_id=session_id,
+                timeout=timeout,
+                set_as_default=True,  # 如果没有默认会话，设为默认
+            )
+
+            # 获取提示符（从 session 的 prompt_detector）
+            prompt = session.prompt_detector.detect_prompt() if hasattr(session, 'prompt_detector') else ""
+
+            logger.info(f"Shell 会话 '{session_id}' 已打开，提示符: {prompt}")
+            return prompt
+
         except Exception as e:
-            # 清理资源
-            if session_id in self._shell_sessions:
-                del self._shell_sessions[session_id]
+            logger.error(f"打开 Shell 会话失败: {e}")
             raise RuntimeError(f"打开 Shell 会话失败: {e}") from e
 
     def close_shell_session(self, session_id: Optional[str] = None) -> None:
@@ -242,36 +226,23 @@ class SSHClient:
         """
         # 如果没有指定 session_id，使用默认会话
         if session_id is None:
-            session_id = self._default_session_id
+            session_id = self._session_manager.get_default_session_id()
 
         if session_id is None:
             logger.warning("没有活动的 Shell 会话")
             return
 
-        session = self._shell_sessions.get(session_id)
-        if session:
-            session.close()
-            del self._shell_sessions[session_id]
+        # 使用 MultiSessionManager 关闭会话
+        success = self._session_manager.close_session(session_id)
+        if success:
             logger.info(f"Shell 会话 '{session_id}' 已关闭")
-
-            # 如果关闭的是默认会话，清除默认会话 ID
-            if session_id == self._default_session_id:
-                self._default_session_id = None
-                # 如果有其他活跃会话，将第一个设为默认
-                if self.shell_sessions:
-                    self._default_session_id = self.shell_sessions[0]
         else:
-            logger.warning(f"Shell 会话 '{session_id}' 不存在")
+            logger.warning(f"Shell 会话 '{session_id}' 不存在或已关闭")
 
     def close_all_shell_sessions(self) -> None:
         """关闭所有 shell 会话"""
-        session_ids = list(self._shell_sessions.keys())
-        for session_id in session_ids:
-            try:
-                self.close_shell_session(session_id)
-            except Exception as e:
-                logger.warning(f"关闭会话 '{session_id}' 时出错: {e}")
-        self._default_session_id = None
+        closed_count = self._session_manager.close_all_sessions()
+        logger.info(f"已关闭 {closed_count} 个 Shell 会话")
 
     def get_shell_session(self, session_id: str) -> Optional[ShellSession]:
         """
@@ -283,7 +254,7 @@ class SSHClient:
         Returns:
             ShellSession: 会话对象，如果不存在返回 None
         """
-        return self._shell_sessions.get(session_id)
+        return self._session_manager.get_session(session_id)
 
     def set_default_shell_session(self, session_id: str) -> None:
         """
@@ -292,9 +263,7 @@ class SSHClient:
         Args:
             session_id: 会话 ID
         """
-        if session_id not in self._shell_sessions:
-            raise RuntimeError(f"Shell 会话 '{session_id}' 不存在")
-        self._default_session_id = session_id
+        self._session_manager.set_default_session(session_id)
         logger.info(f"默认 Shell 会话已设置为 '{session_id}'")
 
     def shell_command(
@@ -313,17 +282,13 @@ class SSHClient:
         """
         # 确定使用哪个会话
         if session_id is None:
-            session_id = self._default_session_id
-
-        if session_id is None:
-            raise RuntimeError("没有活动的 Shell 会话，请先调用 open_shell_session()")
-
-        session = self._shell_sessions.get(session_id)
-        if not session:
-            raise RuntimeError(f"Shell 会话 '{session_id}' 不存在")
-
-        if not session.is_active:
-            raise RuntimeError(f"Shell 会话 '{session_id}' 已关闭")
+            session = self._session_manager.get_default_session()
+            if session is None:
+                raise RuntimeError("没有活动的 Shell 会话，请先调用 open_shell_session()")
+        else:
+            session = self._session_manager.get_session(session_id)
+            if session is None:
+                raise RuntimeError(f"Shell 会话 '{session_id}' 不存在或已关闭")
 
         start_time = time.time()
         output = session.execute_command(command, timeout)
