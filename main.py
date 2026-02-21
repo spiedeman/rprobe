@@ -33,9 +33,9 @@ logger = get_logger(__name__)
 def get_config():
     """获取SSH配置（从环境变量或代码）"""
     # 尝试从环境变量加载
-    host = os.environ.get("REMOTE_SSH_HOST", "localhost")
-    username = os.environ.get("REMOTE_SSH_USERNAME", "demo-user")
-    password = os.environ.get("REMOTE_SSH_PASSWORD", "demo-pass")
+    host = os.environ.get("REMOTE_SSH_HOST", "aliyun.spiedeman.top")
+    username = os.environ.get("REMOTE_SSH_USERNAME", "admin")
+    password = os.environ.get("REMOTE_SSH_PASSWORD", "bhr0204")
 
     if host == "localhost" or host == "your-host.com":
         print("⚠️  警告: 使用默认配置，请设置环境变量或修改代码")
