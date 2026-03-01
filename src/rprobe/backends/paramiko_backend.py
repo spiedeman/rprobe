@@ -4,7 +4,7 @@ Paramiko SSH后端实现
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
 try:
     import paramiko
@@ -89,6 +89,43 @@ class ParamikoChannel:
     def setblocking(self, blocking: bool) -> None:
         """设置阻塞模式"""
         self._channel.setblocking(blocking)
+
+    def get_transport(self) -> Optional["ParamikoTransport"]:
+        """获取关联的transport对象"""
+        underlying_transport = self._channel.get_transport()
+        if underlying_transport:
+            return ParamikoTransport(underlying_transport)
+        return None
+
+    def getpeername(self) -> Optional[tuple]:
+        """获取远程地址"""
+        try:
+            return self._channel.getpeername()
+        except Exception:
+            return None
+
+    def gettimeout(self) -> Optional[float]:
+        """获取超时设置"""
+        return self._channel.gettimeout()
+
+    def sendall(self, data: bytes) -> None:
+        """确保完整发送数据"""
+        try:
+            self._channel.sendall(data)
+        except paramiko.SSHException as e:
+            raise ChannelException(f"发送数据失败: {e}") from e
+
+    def makefile(self, *args, **kwargs):
+        """创建文件对象"""
+        return self._channel.makefile(*args, **kwargs)
+
+    def resize_pty(self, width: int = 80, height: int = 24) -> None:
+        """调整伪终端大小"""
+        self._channel.resize_pty(width, height)
+
+    def shutdown(self, how: int) -> None:
+        """关闭连接的一部分"""
+        self._channel.shutdown(how)
 
 
 class ParamikoTransport:

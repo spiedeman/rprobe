@@ -25,7 +25,7 @@ recv_poll_interval: 0.001  # 仅用于original模式（秒）
 
 # 日志配置
 logging:
-  level: "INFO"           # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "DEBUG"           # DEBUG, INFO, WARNING, ERROR, CRITICAL
   format: "colored"       # simple, colored, json
   output_file: null       # 日志文件路径，null表示不输出到文件
   max_bytes: 10485760     # 10MB
