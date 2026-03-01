@@ -8,6 +8,7 @@
 import pytest
 import inspect
 from typing import get_type_hints, Protocol, runtime_checkable
+from unittest.mock import MagicMock
 
 from rprobe.backends.base import (
     SSHBackend,
@@ -66,13 +67,32 @@ class TestBackendInterfaceContract:
             'gettimeout',
             'sendall',
             'resize_pty',
+            'active',  # 后台任务监控必需！
         ]
-        
+
         from rprobe.backends.paramiko_backend import ParamikoChannel
-        
+
         for method in required_methods:
             assert hasattr(ParamikoChannel, method), \
                 f"ParamikoChannel 缺少方法: {method}"
+
+    def test_channel_active_property(self):
+        """验证 Channel 有 active 属性且行为正确"""
+        from rprobe.backends.paramiko_backend import ParamikoChannel
+
+        # 检查 active 是属性（不是方法）
+        assert isinstance(getattr(ParamikoChannel, 'active'), property), \
+            "active 应该是 property"
+
+        # 测试正常情况
+        mock_channel = MagicMock()
+        mock_channel.active = True
+        pc = ParamikoChannel(mock_channel)
+        assert pc.active is True, "active 应该返回 True"
+
+        # 测试关闭情况
+        mock_channel.active = False
+        assert pc.active is False, "active 应该返回 False"
 
     def test_transport_has_required_methods(self):
         """验证 Transport 实现都有必需的方法"""

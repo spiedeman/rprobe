@@ -26,7 +26,7 @@ from rprobe.logging_config import configure_logging, get_logger
 from rprobe.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
 
 # 配置日志
-configure_logging(level="INFO", format="colored")
+configure_logging(level="DEBUG", format="colored")
 logger = get_logger(__name__)
 
 
@@ -319,13 +319,13 @@ def example_8_background_tasks():
 
             print("\n2. 使用状态机查询任务状态:")
             from rprobe.core.task_status import TaskStatus
-            
+
             # 展示状态枚举
             print(f"   当前状态: {task.status} ({task.status.value})")
             print(f"   状态类型: TaskStatus 枚举")
             print(f"   是否运行中: {task.is_running()}")
             print(f"   是否终态: {task.status.is_terminal}")
-            
+
             # 等待一会儿
             time.sleep(2)
             print(f"   已运行时长: {task.duration:.1f} 秒")
@@ -337,7 +337,7 @@ def example_8_background_tasks():
             print(f"   - 时长: {summary.duration:.1f}秒")
             print(f"   - 输出行数: {summary.lines_output}")
             print(f"   - 状态历史记录数: {len(summary.status_history)}")
-            
+
             # 展示状态历史
             if summary.status_history:
                 print("   - 状态流转:")
@@ -349,7 +349,7 @@ def example_8_background_tasks():
                 print("   发送 SIGINT 信号 (Ctrl+C) 到远程进程...")
                 task.stop(graceful=True, timeout=5.0)
                 print(f"   ✓ 任务已停止，最终状态: {task.status}")
-                
+
                 if task.is_stopped():
                     print("   ✓ 状态确认: STOPPED（用户手动停止）")
                 elif task.is_completed():
@@ -402,12 +402,12 @@ def example_9_exception_mapper():
     print("\n4. 使用异常映射器:")
     try:
         from rprobe.backends.exception_mapper import get_paramiko_exception_mapper
-        
+
         mapper = get_paramiko_exception_mapper()
         print(f"   ✓ 异常映射器已加载")
         print(f"   ✓ 支持类型映射: {len(mapper._mappings)} 种")
         print(f"   ✓ 支持消息映射: {len(mapper._message_mappings)} 种")
-        
+
         # 展示映射规则
         print("\n5. 细粒度映射规则:")
         for keyword in mapper._message_mappings.keys():
@@ -448,8 +448,12 @@ def example_10_architecture_contract():
     )
 
     print(f"   ✓ ParamikoBackend - 已实现所有必需方法")
-    print(f"   ✓ ParamikoChannel - 已实现 {len([m for m in dir(ParamikoChannel) if not m.startswith('_')])} 个方法")
-    print(f"   ✓ ParamikoTransport - 已实现 {len([m for m in dir(ParamikoTransport) if not m.startswith('_')])} 个方法")
+    print(
+        f"   ✓ ParamikoChannel - 已实现 {len([m for m in dir(ParamikoChannel) if not m.startswith('_')])} 个方法"
+    )
+    print(
+        f"   ✓ ParamikoTransport - 已实现 {len([m for m in dir(ParamikoTransport) if not m.startswith('_')])} 个方法"
+    )
 
     print("\n4. 关键方法示例:")
     print("   Channel 必需方法:")

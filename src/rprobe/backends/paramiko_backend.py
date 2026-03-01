@@ -90,6 +90,15 @@ class ParamikoChannel:
         """设置阻塞模式"""
         self._channel.setblocking(blocking)
 
+    @property
+    def active(self) -> bool:
+        """检查channel是否活跃（未关闭且传输层活跃）"""
+        try:
+            return self._channel.active
+        except Exception:
+            # 如果底层调用失败，保守返回False
+            return False
+
     def get_transport(self) -> Optional["ParamikoTransport"]:
         """获取关联的transport对象"""
         underlying_transport = self._channel.get_transport()
