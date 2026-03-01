@@ -137,7 +137,11 @@ class TestBackendExceptionHandling:
         backend = BackendFactory.create()
 
         # 连接到关闭的端口
-        with pytest.raises((ConnectionError, OSError, TimeoutError)) as exc_info:
+        # 注意：根据网络环境不同，可能抛出不同异常
+        # - 连接被拒绝/超时: ConnectionError, TimeoutError
+        # - TCP连接成功但SSH握手失败: SSHException
+        from rprobe.backends.base import SSHException as BackendSSHException
+        with pytest.raises((ConnectionError, OSError, TimeoutError, BackendSSHException)) as exc_info:
             backend.connect(
                 host=test_environment["test_host"],
                 port=9999,  # 假设这个端口未开放

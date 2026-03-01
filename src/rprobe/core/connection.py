@@ -299,14 +299,10 @@ class MultiSessionManager:
         if self._pool is None:
             raise RuntimeError("Connection pool is not available")
 
-        conn = self._pool.get_connection()
-        try:
+        # 使用上下文管理器正确获取和释放连接
+        with self._pool.get_connection() as conn:
             channel = conn.open_channel(timeout)
             return channel
-        except Exception:
-            # 如果创建失败，确保连接被正确释放
-            conn.close()
-            raise
 
     def get_session(self, session_id: str) -> Optional["ShellSession"]:
         """
