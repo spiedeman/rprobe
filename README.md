@@ -9,6 +9,7 @@
 ## 核心特性
 
 - **后台任务执行** - 非阻塞执行长时间命令（如tcpdump），支持实时输出和任务管理
+- **批量后台任务** - 并发控制、批量启动/停止/监控多个后台任务
 - **连接池管理** - 连接复用、健康检查、并行创建/关闭
 - **单连接多会话** - 单个SSH连接支持多个独立Shell会话
 - **流式数据处理** - 超大数据传输支持，低内存占用
@@ -70,6 +71,39 @@ with SSHClient(config) as client:
     
     # 停止任务
     task.stop(graceful=True)
+
+# 批量后台任务 - 并发控制、批量管理
+with SSHClient(config, use_pool=False) as client:
+    # 准备批量任务
+    commands = [
+        {"command": "tcpdump -i eth0 -w /tmp/cap1.pcap", "name": "capture_eth0"},
+        {"command": "tcpdump -i eth1 -w /tmp/cap2.pcap", "name": "capture_eth1"},
+        {"command": "tail -f /var/log/nginx/access.log", "name": "nginx_log"},
+        {"command": "tail -f /var/log/app/error.log", "name": "app_log"},
+    ]
+    
+    # 批量启动（最多2个并发，间隔0.5秒）
+    batch = client._bg_manager.run_batch(
+        commands,
+        max_concurrent=2,
+        batch_delay=0.5
+    )
+    
+    print(f"已启动 {len(batch.tasks)} 个任务")
+    print(f"运行中: {batch.running_count}")
+    
+    # 等待所有任务完成（最多5分钟）
+    if batch.wait_all(timeout=300):
+        print("✅ 所有任务完成")
+    else:
+        print("⚠️  等待超时")
+    
+    # 获取所有结果
+    for summary in batch.get_summaries():
+        print(f"{summary.name}: {summary.status} ({summary.duration:.1f}s)")
+    
+    # 或者批量停止
+    # batch.stop_all(graceful=True)
 
 # ConnectionFactory - 统一Channel创建
 from rprobe.core.connection_factory import ConnectionFactory

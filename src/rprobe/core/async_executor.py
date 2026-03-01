@@ -9,7 +9,7 @@ import uuid
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional, List, Iterator, Dict
+from typing import Optional, List, Iterator, Dict, Any
 from datetime import datetime
 
 from rprobe.core.models import CommandResult
@@ -117,6 +117,38 @@ class TaskSummary:
             f"    状态: {self.status} | 退出码: {self.exit_code}\n"
             f"    时长: {self.duration:.1f}s | 输出: {self.lines_output}行/{self.bytes_output}B"
         )
+
+
+@dataclass
+class BatchTaskResult:
+    """批量任务结果"""
+    tasks: List[BackgroundTask]
+    manager: "BackgroundTaskManager"
+
+    def wait_all(self, timeout: Optional[float] = None) -> bool:
+        """等待所有任务完成"""
+        return self.manager.wait_all(timeout)
+
+    def stop_all(self, graceful: bool = True, timeout: float = 5.0) -> None:
+        """停止所有任务"""
+        self.manager.stop_all(graceful, timeout)
+
+    def get_summaries(self, tail_lines: int = 10) -> List[TaskSummary]:
+        """获取所有任务摘要"""
+        return self.manager.get_all_summaries(tail_lines)
+
+    @property
+    def running_count(self) -> int:
+        return len(self.manager.list_running())
+
+    @property
+    def completed_count(self) -> int:
+        return len(self.manager.list_completed())
+
+    @property
+    def all_completed(self) -> bool:
+        """是否所有任务都已完成"""
+        return self.running_count == 0
 
 
 class BackgroundTask:
@@ -613,6 +645,60 @@ class BackgroundTaskManager:
             if task and task.name:
                 self._tasks_by_name.pop(task.name, None)
 
+    def run_batch(
+        self,
+        commands: List[Dict[str, Any]],
+        max_concurrent: int = 5,
+        batch_delay: float = 0.1,
+    ) -> BatchTaskResult:
+        """
+        批量启动后台任务
+
+        Args:
+            commands: 任务列表，每项为 {"command": str, "name": str, ...}
+            max_concurrent: 最大并发数，防止同时启动过多任务
+            batch_delay: 每个任务启动间隔（秒）
+
+        Returns:
+            BatchTaskResult: 批量任务结果对象
+
+        Example:
+            commands = [
+                {"command": "tcpdump -i eth0", "name": "capture1"},
+                {"command": "tcpdump -i eth1", "name": "capture2"},
+                {"command": "tail -f /var/log/app.log", "name": "log_monitor"},
+            ]
+            batch = manager.run_batch(commands, max_concurrent=2)
+
+            # 等待所有任务完成
+            if batch.wait_all(timeout=300):
+                print("所有任务完成")
+
+            # 获取所有结果
+            for summary in batch.get_summaries():
+                print(f"{summary.name}: {summary.status}")
+        """
+        tasks = []
+        for i, cmd_info in enumerate(commands):
+            # 控制并发：如果当前运行任务过多，等待
+            while len(self.list_running()) >= max_concurrent:
+                time.sleep(0.1)
+
+            # 启动任务
+            task = self.run(
+                command=cmd_info["command"],
+                name=cmd_info.get("name"),
+                buffer_size_mb=cmd_info.get("buffer_size_mb", 10.0),
+                cleanup_delay=cmd_info.get("cleanup_delay", 3600.0),
+            )
+            tasks.append(task)
+
+            # 任务间延迟，避免瞬间并发
+            if i < len(commands) - 1:
+                time.sleep(batch_delay)
+
+        return BatchTaskResult(tasks=tasks, manager=self)
+
 
 def bg(
     ssh_client,
@@ -634,6 +720,7 @@ __all__ = [
     'BackgroundTask',
     'BackgroundTaskManager',
     'TaskSummary',
+    'BatchTaskResult',
     'ByteLimitedBuffer',
     'bg',
     'TaskStatus',

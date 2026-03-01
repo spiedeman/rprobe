@@ -26,7 +26,7 @@ from rprobe.logging_config import configure_logging, get_logger
 from rprobe.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
 
 # 配置日志
-configure_logging(level="DEBUG", format="colored")
+configure_logging(level="INFO", format="colored")
 logger = get_logger(__name__)
 
 
@@ -366,7 +366,54 @@ def example_8_background_tasks():
 
     except Exception as e:
         print(f"   ⚠ 演示失败: {e}")
-        print("   提示: 后台任务执行器需要真实SSH连接")
+
+
+def example_8b_batch_background_tasks():
+    """示例8b: 批量后台任务 - 并发控制"""
+    print("\n" + "=" * 60)
+    print("示例8b: 批量后台任务 - 并发控制与批量管理")
+    print("=" * 60)
+
+    config = get_config()
+
+    try:
+        with SSHClient(config, use_pool=False) as client:
+            print("\n1. 准备批量后台任务:")
+            commands = [
+                {"command": "for i in $(seq 1 3); do echo 'Task 1 - line '$i; sleep 1; done", "name": "batch_task_1"},
+                {"command": "for i in $(seq 1 3); do echo 'Task 2 - line '$i; sleep 1; done", "name": "batch_task_2"},
+                {"command": "for i in $(seq 1 3); do echo 'Task 3 - line '$i; sleep 1; done", "name": "batch_task_3"},
+            ]
+            print(f"   准备启动 {len(commands)} 个后台任务")
+
+            print("\n2. 批量启动（最多2个并发）:")
+            batch = client._bg_manager.run_batch(
+                commands,
+                max_concurrent=2,
+                batch_delay=0.5
+            )
+            print(f"   ✓ 已启动 {len(batch.tasks)} 个任务")
+            print(f"   ✓ 当前运行中: {batch.running_count}")
+
+            print("\n3. 等待所有任务完成（最多10秒）:")
+            if batch.wait_all(timeout=10):
+                print("   ✓ 所有任务完成")
+            else:
+                print("   ⚠ 等待超时")
+
+            print("\n4. 获取所有任务结果:")
+            summaries = batch.get_summaries()
+            for summary in summaries:
+                print(f"   - {summary.name}: {summary.status} ({summary.duration:.1f}s, {summary.lines_output}行)")
+
+            print("\n5. 批量任务统计:")
+            print(f"   - 已完成: {batch.completed_count}")
+            print(f"   - 运行中: {batch.running_count}")
+            print(f"   - 全部完成: {'是' if batch.all_completed else '否'}")
+
+    except Exception as e:
+        print(f"   ⚠ 演示失败: {e}")
+        print("   提示: 批量后台任务需要真实SSH连接")
 
 
 def example_9_exception_mapper():
