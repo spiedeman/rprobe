@@ -6,7 +6,7 @@
 """
 import os
 from src import SSHConfig, load_config
-from src.config.manager import ConfigManager
+from rprobe.config.manager import ConfigManager
 
 
 def example_1_basic_config():
@@ -192,7 +192,7 @@ def example_6_config_validation():
     print("示例6: 配置验证")
     print("=" * 60)
     
-    from src.exceptions import ConfigurationError
+    from rprobe.exceptions import ConfigurationError
     
     # 无效配置1: 空主机
     try:

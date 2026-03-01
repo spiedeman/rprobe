@@ -6,8 +6,8 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 
-from src.pooling import ConnectionPool
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.config.models import SSHConfig
 
 
 class TestParallelConnectionCreation:
@@ -61,7 +61,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient.connect"):
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient.connect"):
             pool = ConnectionPool(
                 config, max_size=5, min_size=5, parallel_init=True, health_check_interval=0
             )
@@ -107,7 +107,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient.connect"):
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient.connect"):
             pool = ConnectionPool(
                 config, max_size=1, min_size=1, parallel_init=True, health_check_interval=0
             )
@@ -125,7 +125,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient.connect"):
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient.connect"):
             # 创建20个连接，但并发数应该被限制为10
             pool = ConnectionPool(
                 config, max_size=20, min_size=20, parallel_init=True, health_check_interval=0
@@ -144,7 +144,7 @@ class TestParallelConnectionCreation:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient.connect"):
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient.connect"):
             # 串行
             pool_serial = ConnectionPool(
                 config, max_size=3, min_size=3, parallel_init=False, health_check_interval=0

@@ -39,7 +39,7 @@ def demo_parallel_close():
     print("-" * 70)
     print("""
 from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool
+from rprobe.pooling import ConnectionPool
 
 # 创建配置
 config = SSHConfig(

@@ -1,10 +1,10 @@
-# RemoteSSH - 高性能 Python SSH 客户端
+# rprobe - 轻量级远程 SSH 探针工具
 
 [![Tests](https://img.shields.io/badge/tests-700%2B%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)]()
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)]()
 
-一个功能完善的 Python SSH 客户端库，提供连接池管理、结构化日志、多源配置等高级功能。
+一个轻量级的 SSH 探针工具，用于快速手动测试和远程设备探查。支持多会话管理、结构化输出和 DSL 模式提取。
 
 ## 核心特性
 
@@ -21,7 +21,7 @@
 ## 快速开始
 
 ```python
-from src import SSHClient, SSHConfig
+from rprobe import SSHClient, SSHConfig
 
 # 创建配置
 config = SSHConfig(
@@ -72,7 +72,7 @@ with SSHClient(config) as client:
     task.stop(graceful=True)
 
 # ConnectionFactory - 统一Channel创建
-from src.core.connection_factory import ConnectionFactory
+from rprobe.core.connection_factory import ConnectionFactory
 
 with SSHClient(config) as client:
     transport = client._connection.transport
@@ -93,7 +93,7 @@ with SSHClient(config) as client:
 ```bash
 # 克隆仓库
 git clone <repository-url>
-cd RemoteSSH
+cd rprobe
 
 # 创建虚拟环境
 python3 -m venv .venv

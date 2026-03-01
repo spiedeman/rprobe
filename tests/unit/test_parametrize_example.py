@@ -5,8 +5,8 @@
 """
 
 import pytest
-from src import SSHConfig
-from src.exceptions import ConfigurationError
+from rprobe import SSHConfig
+from rprobe.exceptions import ConfigurationError
 
 # ==========================================
 # 传统方式（重复代码多）

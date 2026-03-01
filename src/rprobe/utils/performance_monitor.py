@@ -18,8 +18,8 @@ from typing import Dict, Optional
 # 添加项目根目录到路径
 sys.path.insert(0, "/Users/spiedy/Documents/Code/RemoteSSH")
 
-from src.config.models import SSHConfig, RecvMode
-from src.receivers import SmartChannelReceiver, compare_modes
+from rprobe.config.models import SSHConfig, RecvMode
+from rprobe.receivers import SmartChannelReceiver, compare_modes
 
 
 def print_performance_info(receiver: SmartChannelReceiver):

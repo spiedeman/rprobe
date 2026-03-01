@@ -7,8 +7,8 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 
-from src.pooling import ConnectionPool
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.config.models import SSHConfig
 
 
 class TestConnectionPoolGetConnectionsInfo:
@@ -22,7 +22,7 @@ class TestConnectionPoolGetConnectionsInfo:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -42,7 +42,7 @@ class TestConnectionPoolGetConnectionsInfo:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -68,7 +68,7 @@ class TestConnectionPoolGetConnectionsInfo:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -98,7 +98,7 @@ class TestConnectionPoolCloseConnectionById:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -123,7 +123,7 @@ class TestConnectionPoolCloseConnectionById:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -143,7 +143,7 @@ class TestConnectionPoolCloseConnectionById:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -173,7 +173,7 @@ class TestConnectionPoolCloseConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -194,7 +194,7 @@ class TestConnectionPoolCloseConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -215,7 +215,7 @@ class TestConnectionPoolCloseConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -240,7 +240,7 @@ class TestConnectionPoolCloseConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -261,7 +261,7 @@ class TestConnectionPoolCloseConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -285,7 +285,7 @@ class TestConnectionPoolCloseIdleConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -309,7 +309,7 @@ class TestConnectionPoolCloseIdleConnections:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -333,7 +333,7 @@ class TestConnectionPoolCloseByFilter:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -354,7 +354,7 @@ class TestConnectionPoolCloseByFilter:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn

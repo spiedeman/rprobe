@@ -2,9 +2,9 @@
 """
 方式1: 连接池 + 单Shell 使用示例
 """
-from src.pooling import ConnectionPool, get_pool_manager
-from src.session.shell_session import ShellSession
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool, get_pool_manager
+from rprobe.session.shell_session import ShellSession
+from rprobe.config.models import SSHConfig
 
 # 配置
 config = SSHConfig(

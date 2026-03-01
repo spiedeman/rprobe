@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 # 移除：import paramiko
 # 改为从后端导入
-from src.backends import (
+from rprobe.backends import (
     SSHBackend,
     Channel,
     AuthenticationError,
@@ -19,10 +19,10 @@ from src.backends import (
     ConnectionError,
     BackendFactory,
 )
-from src.config.models import SSHConfig
+from rprobe.config.models import SSHConfig
 
 if TYPE_CHECKING:
-    from src.session.shell_session import ShellSession
+    from rprobe.session.shell_session import ShellSession
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +256,7 @@ class MultiSessionManager:
             ValueError: 会话 ID 已存在
             RuntimeError: 连接未建立
         """
-        from src.session.shell_session import ShellSession
+        from rprobe.session.shell_session import ShellSession
 
         with self._lock:
             # 生成会话 ID

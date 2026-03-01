@@ -12,8 +12,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.config.manager import SSHConfig, ConfigManager, load_config, YAML_AVAILABLE
-from src.exceptions import ConfigurationError
+from rprobe.config.manager import SSHConfig, ConfigManager, load_config, YAML_AVAILABLE
+from rprobe.exceptions import ConfigurationError
 
 
 class TestSSHConfig:

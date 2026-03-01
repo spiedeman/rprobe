@@ -8,9 +8,9 @@ from unittest.mock import Mock, patch, call
 import pytest
 import paramiko
 
-from src import SSHClient
-from src.config.models import SSHConfig
-from src.core.models import CommandResult
+from rprobe import SSHClient
+from rprobe.config.models import SSHConfig
+from rprobe.core.models import CommandResult
 
 
 class TestOpenShellSession:
@@ -28,7 +28,7 @@ class TestOpenShellSession:
         client.connect()
         return client, mock_client, mock_transport
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_open_shell_session_success(self, mock_ssh_client_class, mock_ssh_config):
         """测试成功打开 shell 会话"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -51,7 +51,7 @@ class TestOpenShellSession:
         mock_channel.get_pty.assert_called_once()
         mock_channel.invoke_shell.assert_called_once()
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_open_shell_session_already_exists(self, mock_ssh_client_class, mock_ssh_config):
         """测试同一 session_id 会话已存在时抛出异常"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -70,7 +70,7 @@ class TestOpenShellSession:
         with pytest.raises(RuntimeError, match="Session 'test-session' already exists"):
             client.open_shell_session(timeout=0.01, session_id="test-session")
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_open_shell_session_timeout(self, mock_ssh_client_class, mock_ssh_config):
         """测试打开会话超时 - 使用默认prompt"""
         client, mock_client, mock_transport = self._setup_mock_connection(
@@ -112,7 +112,7 @@ class TestShellCommand:
         client.open_shell_session()
         return client, mock_client, mock_transport, mock_channel
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_shell_command_success(self, mock_ssh_client_class, mock_ssh_config):
         """测试成功执行 shell 命令"""
         client, mock_client, mock_transport, mock_channel = self._setup_shell_session(
@@ -131,7 +131,7 @@ class TestShellCommand:
         assert result.exit_code == 0
         mock_channel.send.assert_called_once_with(b"ls\n")
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_shell_command_no_session(self, mock_ssh_client_class, mock_ssh_config):
         """测试没有会话时抛出异常"""
         mock_client = Mock()
@@ -147,7 +147,7 @@ class TestShellCommand:
         with pytest.raises(RuntimeError, match="没有活动的 Shell 会话"):
             client.shell_command("ls")
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_shell_command_with_ansi_codes(self, mock_ssh_client_class, mock_ssh_config):
         """测试清理 ANSI 控制字符"""
         client, mock_client, mock_transport, mock_channel = self._setup_shell_session(
@@ -166,7 +166,7 @@ class TestShellCommand:
         # 第一行（命令回显）应该被移除
         assert "file1" in result.stdout
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_shell_command_socket_error(self, mock_ssh_client_class, mock_ssh_config):
         """测试 socket 错误处理"""
         client, mock_client, mock_transport, mock_channel = self._setup_shell_session(
@@ -184,7 +184,7 @@ class TestShellCommand:
 class TestCloseShellSession:
     """测试 close_shell_session 方法"""
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_close_shell_session(self, mock_ssh_client_class, mock_ssh_config):
         """测试关闭 shell 会话"""
         mock_client = Mock()
@@ -210,7 +210,7 @@ class TestCloseShellSession:
         assert client.shell_session_active is False
         mock_channel.close.assert_called_once()
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_close_shell_session_no_active_session(self, mock_ssh_client_class, mock_ssh_config):
         """测试关闭不存在的会话"""
         mock_client = Mock()

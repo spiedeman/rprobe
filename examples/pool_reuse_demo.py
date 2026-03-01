@@ -13,8 +13,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest.mock import Mock, patch
-from src.pooling import ConnectionPool, PoolManager, get_pool_manager
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool, PoolManager, get_pool_manager
+from rprobe.config.models import SSHConfig
 
 
 def demo_pool_reset():

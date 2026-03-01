@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Iterator, Dict
 from datetime import datetime
 
-from src.core.models import CommandResult
+from rprobe.core.models import CommandResult
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from unittest.mock import Mock, MagicMock
 
 import pytest
 
-from src.config.models import SSHConfig
+from rprobe.config.models import SSHConfig
 
 
 def pytest_addoption(parser):
@@ -105,7 +105,7 @@ def mock_backend():
 @pytest.fixture
 def mock_channel():
     """创建 mock Channel（抽象层）"""
-    from src.backends.base import Channel
+    from rprobe.backends.base import Channel
 
     channel = Mock(spec=Channel)
     channel.closed = False

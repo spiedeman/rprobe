@@ -11,7 +11,7 @@ Features:
 - 类型安全
 
 Example:
-    from src.config import SSHConfig, ConfigManager
+    from rprobe.config import SSHConfig, ConfigManager
 
     # 方式1: 直接从代码创建
     config = SSHConfig(
@@ -39,7 +39,7 @@ from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
-from src.exceptions import ConfigurationError
+from rprobe.exceptions import ConfigurationError
 
 # 尝试导入yaml
 try:

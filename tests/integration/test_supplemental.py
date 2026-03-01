@@ -6,9 +6,9 @@ import time
 import pytest
 import logging
 
-from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool
-from src.core.connection import ConnectionManager, MultiSessionManager
+from rprobe import SSHClient, SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
 
 
 @pytest.mark.integration

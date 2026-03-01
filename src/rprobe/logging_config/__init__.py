@@ -11,7 +11,7 @@ Features:
 - 支持多个输出目标（控制台、文件、网络）
 
 Example:
-    from src.logging_config import get_logger, configure_logging
+    from rprobe.logging_config import get_logger, configure_logging
 
     # 配置日志
     configure_logging(

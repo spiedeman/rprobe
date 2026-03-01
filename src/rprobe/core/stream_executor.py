@@ -26,13 +26,13 @@ import logging
 import time
 from typing import Callable, Optional, TYPE_CHECKING
 
-from src.config.models import SSHConfig
-from src.core.models import CommandResult
-from src.core.connection_factory import ConnectionFactory
-from src.receivers.smart_receiver import SmartChannelReceiver, create_receiver
+from rprobe.config.models import SSHConfig
+from rprobe.core.models import CommandResult
+from rprobe.core.connection_factory import ConnectionFactory
+from rprobe.receivers.smart_receiver import SmartChannelReceiver, create_receiver
 
 if TYPE_CHECKING:
-    from src.core.client import SSHClient
+    from rprobe.core.client import SSHClient
 
 
 logger = logging.getLogger(__name__)

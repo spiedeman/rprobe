@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src import SSHClient
-from src.config.models import SSHConfig
+from rprobe import SSHClient
+from rprobe.config.models import SSHConfig
 
 
 class TestMultipleShellSessionsAPI:

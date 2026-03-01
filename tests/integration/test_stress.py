@@ -17,9 +17,9 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool
-from src.exceptions import PoolTimeoutError, PoolExhaustedError
+from rprobe import SSHClient, SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.exceptions import PoolTimeoutError, PoolExhaustedError
 from tests.integration.test_config import (
     SLEEP_TIME_SHORT,
     SLEEP_TIME_MEDIUM,

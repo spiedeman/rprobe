@@ -4,7 +4,7 @@ ConnectionFactory 使用示例
 演示如何使用 ConnectionFactory 统一创建和管理 SSH Channel
 """
 from src import SSHClient, SSHConfig
-from src.core.connection_factory import ConnectionFactory
+from rprobe.core.connection_factory import ConnectionFactory
 
 
 def example_basic_usage():

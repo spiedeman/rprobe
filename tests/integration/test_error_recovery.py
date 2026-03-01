@@ -12,9 +12,9 @@
 import time
 import pytest
 
-from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool
-from src.exceptions import CommandTimeoutError, ConnectionError
+from rprobe import SSHClient, SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.exceptions import CommandTimeoutError, ConnectionError
 from tests.integration.test_config import SLEEP_TIME_LONG, SLEEP_TIME_MEDIUM
 
 

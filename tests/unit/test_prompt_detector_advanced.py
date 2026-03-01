@@ -5,13 +5,13 @@ Prompt Detector 模块单元测试 - 补充测试
 
 import pytest
 
-from src.patterns import (
+from rprobe.patterns import (
     PromptDetector,
     PromptLearningStrategy,
     DefaultLearningStrategy,
     PromptMatchResult,
 )
-from src.patterns import PromptCategory
+from rprobe.patterns import PromptCategory
 
 
 class TestPromptLearningStrategy:

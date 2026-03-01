@@ -9,12 +9,12 @@ import time
 from typing import Optional
 
 # 从后端导入抽象Channel类型
-from src.backends.base import Channel
+from rprobe.backends.base import Channel
 
-from src.config.models import SSHConfig
-from src.patterns.prompt_detector import PromptDetector
-from src.utils.ansi_cleaner import ANSICleaner
-from src.utils.wait_strategies import AdaptiveWaitStrategy
+from rprobe.config.models import SSHConfig
+from rprobe.patterns.prompt_detector import PromptDetector
+from rprobe.utils.ansi_cleaner import ANSICleaner
+from rprobe.utils.wait_strategies import AdaptiveWaitStrategy
 
 logger = logging.getLogger(__name__)
 

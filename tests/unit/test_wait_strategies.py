@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.utils.wait_strategies import (
+from rprobe.utils.wait_strategies import (
     AdaptiveWaitStrategy,
     BlockingWaitStrategy,
     HybridWaitStrategy,

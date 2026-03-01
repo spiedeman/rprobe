@@ -13,15 +13,15 @@ import pytest
 import time
 from unittest.mock import Mock, patch
 
-from src import SSHClient, SSHConfig
-from src.backends import (
+from rprobe import SSHClient, SSHConfig
+from rprobe.backends import (
     BackendFactory,
     AuthenticationError,
     ConnectionError,
     SSHException,
 )
-from src.core.connection import ConnectionManager
-from src.pooling import ConnectionPool
+from rprobe.core.connection import ConnectionManager
+from rprobe.pooling import ConnectionPool
 from tests.integration.test_config import SLEEP_TIME_LONG
 
 
@@ -92,7 +92,7 @@ class TestBackendExceptionHandling:
         if not test_environment["has_real_ssh"]:
             pytest.skip("未设置真实 SSH 测试环境变量")
 
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = BackendFactory.create()
 

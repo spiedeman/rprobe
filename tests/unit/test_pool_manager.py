@@ -5,8 +5,8 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.pooling import PoolManager, ConnectionPool
-from src.config.models import SSHConfig
+from rprobe.pooling import PoolManager, ConnectionPool
+from rprobe.config.models import SSHConfig
 
 
 class TestPoolManagerCreate:
@@ -21,7 +21,7 @@ class TestPoolManagerCreate:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -42,7 +42,7 @@ class TestPoolManagerCreate:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -64,7 +64,7 @@ class TestPoolManagerCreate:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -99,7 +99,7 @@ class TestPoolManagerCreate:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -124,7 +124,7 @@ class TestPoolManagerClose:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -157,7 +157,7 @@ class TestPoolManagerClose:
         config1 = SSHConfig(host="host1.com", username="user1", password="pass1")
         config2 = SSHConfig(host="host2.com", username="user2", password="pass2")
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -178,7 +178,7 @@ class TestPoolManagerClose:
         config1 = SSHConfig(host="host1.com", username="user1", password="pass1")
         config2 = SSHConfig(host="host2.com", username="user2", password="pass2")
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -205,7 +205,7 @@ class TestPoolManagerGet:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -240,7 +240,7 @@ class TestPoolManagerGet:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -271,7 +271,7 @@ class TestPoolManagerRemove:
             port=22,
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -309,7 +309,7 @@ class TestPoolManagerStats:
         config1 = SSHConfig(host="host1.com", username="user1", password="pass1")
         config2 = SSHConfig(host="host2.com", username="user2", password="pass2")
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -329,7 +329,7 @@ class TestPoolManagerStats:
         config1 = SSHConfig(host="host1.com", username="user1", password="pass1")
         config2 = SSHConfig(host="host2.com", username="user2", password="pass2")
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn

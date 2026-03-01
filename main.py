@@ -21,9 +21,9 @@ import sys
 # 添加src到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src import SSHClient, SSHConfig
-from src.logging_config import configure_logging, get_logger
-from src.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
+from rprobe import SSHClient, SSHConfig
+from rprobe.logging_config import configure_logging, get_logger
+from rprobe.exceptions import ConfigurationError, ConnectionError, CommandTimeoutError
 
 # 配置日志
 configure_logging(level="INFO", format="colored")
@@ -200,7 +200,9 @@ def example_5_parallel_creation():
 
     print("\n1. 串行创建5个连接:")
     start = time.time()
-    client_serial = SSHClient(config, use_pool=True, max_size=5, min_size=5, parallel_init=False)
+    client_serial = SSHClient(
+        config, use_pool=True, max_size=5, min_size=5, parallel_init=False
+    )
     serial_time = time.time() - start
     stats = client_serial._pool.stats
     print(f"   创建{stats['created']}个连接耗时: {serial_time:.3f}s")
@@ -208,7 +210,9 @@ def example_5_parallel_creation():
 
     print("\n2. 并行创建5个连接:")
     start = time.time()
-    client_parallel = SSHClient(config, use_pool=True, max_size=5, min_size=5, parallel_init=True)
+    client_parallel = SSHClient(
+        config, use_pool=True, max_size=5, min_size=5, parallel_init=True
+    )
     parallel_time = time.time() - start
     stats = client_parallel._pool.stats
     print(f"   创建{stats['created']}个连接耗时: {parallel_time:.3f}s")
@@ -226,7 +230,9 @@ def example_6_config_management():
     print("=" * 60)
 
     print("\n1. 从代码创建配置:")
-    config1 = SSHConfig(host="server1.example.com", username="admin", password="secret", port=2222)
+    config1 = SSHConfig(
+        host="server1.example.com", username="admin", password="secret", port=2222
+    )
     print(f"   ✓ {config1}")
 
     print("\n2. 配置复制和修改:")
@@ -396,7 +402,7 @@ def example_10_connection_factory():
     print("示例10: ConnectionFactory - 统一Channel创建")
     print("=" * 60)
 
-    from src.core.connection_factory import ConnectionFactory
+    from rprobe.core.connection_factory import ConnectionFactory
 
     config = get_config()
 

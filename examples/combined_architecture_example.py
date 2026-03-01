@@ -6,9 +6,9 @@
 - 连接池提供：并发能力、故障隔离、负载均衡
 - 多会话提供：状态隔离、资源节省
 """
-from src.pooling import ConnectionPool
-from src.core.connection import MultiSessionManager
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.core.connection import MultiSessionManager
+from rprobe.config.models import SSHConfig
 
 # 配置
 config = SSHConfig(

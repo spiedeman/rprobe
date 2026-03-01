@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch, MagicMock
 import pytest
 import paramiko
 
-from src.config.models import SSHConfig, RecvMode
-from src.receivers import SmartChannelReceiver, create_receiver, compare_modes
+from rprobe.config.models import SSHConfig, RecvMode
+from rprobe.receivers import SmartChannelReceiver, create_receiver, compare_modes
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@
 
 import pytest
 
-from src.exceptions import (
+from rprobe.exceptions import (
     SSHError,
     ConnectionError,
     AuthenticationError,

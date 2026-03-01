@@ -7,7 +7,7 @@ import logging
 from io import StringIO
 import pytest
 
-from src.logging_config import (
+from rprobe.logging_config import (
     configure_logging,
     get_logger,
     StructuredLogger,

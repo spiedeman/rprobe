@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Optional
 from pathlib import Path
 
-from src.exceptions import ConfigurationError
+from rprobe.exceptions import ConfigurationError
 
 
 class RecvMode(Enum):

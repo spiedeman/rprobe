@@ -6,7 +6,7 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 
-from src.pooling.stats_collector import PoolStatsCollector, PoolMetrics
+from rprobe.pooling.stats_collector import PoolStatsCollector, PoolMetrics
 
 
 class TestPoolStatsCollectorHumanReadable:

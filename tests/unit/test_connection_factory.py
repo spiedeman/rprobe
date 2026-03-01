@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from contextlib import contextmanager
 
-from src.core.connection_factory import ConnectionFactory
+from rprobe.core.connection_factory import ConnectionFactory
 
 # ==============================================================================
 # create_exec_channel 测试

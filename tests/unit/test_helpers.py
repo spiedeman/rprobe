@@ -8,7 +8,7 @@ import time
 import pytest
 from unittest.mock import patch
 
-from src.utils.helpers import (
+from rprobe.utils.helpers import (
     retry,
     sanitize_string,
     truncate_middle,

@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.patterns import PromptDetector, DefaultLearningStrategy
+from rprobe.patterns import PromptDetector, DefaultLearningStrategy
 
 
 class TestMultiPatternLearning:

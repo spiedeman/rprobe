@@ -17,16 +17,16 @@ from typing import Optional, Dict, List, Callable
 
 # 移除：import paramiko
 # 改为从后端导入异常
-from src.backends import AuthenticationError, SSHException, ConnectionError
+from rprobe.backends import AuthenticationError, SSHException, ConnectionError
 
-from src.config.models import SSHConfig
-from src.core.models import CommandResult
-from src.core.connection import ConnectionManager, MultiSessionManager
-from src.core.connection_factory import ConnectionFactory
-from src.receivers.smart_receiver import SmartChannelReceiver, create_receiver
-from src.session.shell_session import ShellSession
-from src.patterns.prompt_detector import PromptDetector
-from src.pooling import ConnectionPool, get_pool_manager
+from rprobe.config.models import SSHConfig
+from rprobe.core.models import CommandResult
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
+from rprobe.core.connection_factory import ConnectionFactory
+from rprobe.receivers.smart_receiver import SmartChannelReceiver, create_receiver
+from rprobe.session.shell_session import ShellSession
+from rprobe.patterns.prompt_detector import PromptDetector
+from rprobe.pooling import ConnectionPool, get_pool_manager
 
 # 延迟导入避免循环依赖
 _stream_executor_class = None
@@ -36,7 +36,7 @@ def _get_stream_executor_class():
     """延迟获取 StreamExecutor 类"""
     global _stream_executor_class
     if _stream_executor_class is None:
-        from src.core.stream_executor import StreamExecutor
+        from rprobe.core.stream_executor import StreamExecutor
 
         _stream_executor_class = StreamExecutor
     return _stream_executor_class
@@ -52,7 +52,7 @@ _background_manager_class = None
 def _get_background_manager_class():
     global _background_manager_class
     if _background_manager_class is None:
-        from src.async_executor import BackgroundTaskManager
+        from rprobe.core.async_executor import BackgroundTaskManager
 
         _background_manager_class = BackgroundTaskManager
     return _background_manager_class

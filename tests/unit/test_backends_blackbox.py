@@ -20,7 +20,7 @@ try:
 except ImportError:
     PARAMIKO_AVAILABLE = False
 
-from src.backends import (
+from rprobe.backends import (
     BackendFactory,
     AuthenticationError,
     ConnectionError,
@@ -40,11 +40,11 @@ class TestParamikoBackendEquivalencePartitioning:
     @paramiko_required
     def test_valid_config_normal(self):
         """等价类1: 有效配置 - 正常情况"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -66,11 +66,11 @@ class TestParamikoBackendEquivalencePartitioning:
     @paramiko_required
     def test_valid_config_edge_port(self):
         """等价类2: 有效配置 - 边界端口"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -86,11 +86,11 @@ class TestParamikoBackendEquivalencePartitioning:
     @paramiko_required
     def test_invalid_host_empty(self):
         """等价类3: 无效输入 - 空主机名"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = Exception("Invalid host")
             mock_client_class.return_value = mock_client
@@ -102,11 +102,11 @@ class TestParamikoBackendEquivalencePartitioning:
     @paramiko_required
     def test_invalid_credentials(self):
         """等价类4: 无效输入 - 错误凭据"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = paramiko.AuthenticationException("Bad credentials")
             mock_client_class.return_value = mock_client
@@ -127,11 +127,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_port_minimum(self):
         """边界值: 端口最小值 1"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -146,11 +146,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_port_maximum(self):
         """边界值: 端口最大值 65535"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -165,11 +165,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_timeout_zero(self):
         """边界值: 超时时间为0"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -185,11 +185,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_timeout_large(self):
         """边界值: 超长超时时间"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -205,11 +205,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_username_minimal(self):
         """边界值: 最小用户名（1字符）"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -224,11 +224,11 @@ class TestParamikoBackendBoundaryValueAnalysis:
     @paramiko_required
     def test_boundary_username_long(self):
         """边界值: 超长用户名"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -251,11 +251,11 @@ class TestParamikoBackendDecisionTable:
     @paramiko_required
     def test_decision_1_password_auth(self):
         """决策1: 密码认证 - C1=T, C2=F"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -279,11 +279,11 @@ class TestParamikoBackendDecisionTable:
     @paramiko_required
     def test_decision_2_key_auth_no_passphrase(self):
         """决策2: 密钥认证（无密码）- C1=F, C2=T, C3=F"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -308,11 +308,11 @@ class TestParamikoBackendDecisionTable:
     @paramiko_required
     def test_decision_3_key_auth_with_passphrase(self):
         """决策3: 密钥认证（有密码）- C1=F, C2=T, C3=T"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -337,11 +337,11 @@ class TestParamikoBackendDecisionTable:
     @paramiko_required
     def test_decision_4_no_auth(self):
         """决策4: 无认证信息 - C1=F, C2=F"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -368,14 +368,14 @@ class TestParamikoBackendStateTransition:
     @paramiko_required
     def test_state_init_to_connected(self):
         """状态转换: 初始化 -> 已连接"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
         # 初始状态：未连接
         assert not backend.is_connected()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -391,11 +391,11 @@ class TestParamikoBackendStateTransition:
     @paramiko_required
     def test_state_connected_to_disconnected(self):
         """状态转换: 已连接 -> 已断开"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -415,11 +415,11 @@ class TestParamikoBackendStateTransition:
     @paramiko_required
     def test_state_connected_to_channel_open(self):
         """状态转换: 已连接 -> 打开通道"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_channel = Mock()
             mock_transport = Mock()
@@ -449,11 +449,11 @@ class TestParamikoBackendErrorGuessing:
     @paramiko_required
     def test_error_double_connect(self):
         """错误场景: 重复连接"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -472,7 +472,7 @@ class TestParamikoBackendErrorGuessing:
     @paramiko_required
     def test_error_disconnect_without_connect(self):
         """错误场景: 未连接就断开"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
@@ -483,11 +483,11 @@ class TestParamikoBackendErrorGuessing:
     @paramiko_required
     def test_error_network_interruption(self):
         """错误场景: 网络中断"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = socket.error("Network unreachable")
             mock_client_class.return_value = mock_client
@@ -498,11 +498,11 @@ class TestParamikoBackendErrorGuessing:
     @paramiko_required
     def test_error_host_not_found(self):
         """错误场景: 主机不存在"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = socket.gaierror("Name or service not known")
             mock_client_class.return_value = mock_client
@@ -520,11 +520,11 @@ class TestParamikoBackendScenario:
     @paramiko_required
     def test_scenario_normal_workflow(self):
         """场景: 正常工作流程"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_channel = Mock()
             mock_transport = Mock()
@@ -555,11 +555,11 @@ class TestParamikoBackendScenario:
     @paramiko_required
     def test_scenario_key_based_auth(self):
         """场景: 密钥认证工作流程"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -583,11 +583,11 @@ class TestParamikoBackendScenario:
     @paramiko_required
     def test_scenario_multiple_operations(self):
         """场景: 多次操作复用连接"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True

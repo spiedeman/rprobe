@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from typing import List
 
 from src import SSHClient, SSHConfig
-from src.pooling import get_pool_manager
+from rprobe.pooling import get_pool_manager
 
 
 @contextmanager

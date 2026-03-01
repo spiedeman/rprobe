@@ -5,8 +5,8 @@
 """
 
 import pytest
-from src import SSHConfig, SSHClient
-from src.exceptions import ConfigurationError
+from rprobe import SSHConfig, SSHClient
+from rprobe.exceptions import ConfigurationError
 
 
 class TestInputValidation:

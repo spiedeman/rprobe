@@ -10,10 +10,10 @@ import sys
 from typing import Optional, Tuple, Callable
 
 # 从后端导入抽象类型
-from src.backends.base import Channel, Transport
+from rprobe.backends.base import Channel, Transport
 
-from src.config.models import SSHConfig, RecvMode
-from src.receivers.channel_receiver import ChannelDataReceiver
+from rprobe.config.models import SSHConfig, RecvMode
+from rprobe.receivers.channel_receiver import ChannelDataReceiver
 
 logger = logging.getLogger(__name__)
 

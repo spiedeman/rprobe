@@ -8,8 +8,8 @@ import time
 import pytest
 from unittest.mock import Mock, patch
 
-from src.pooling import ConnectionPool
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.config.models import SSHConfig
 
 
 class TestPoolCreationTime:
@@ -177,7 +177,7 @@ class TestPoolCreationCount:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient.connect"):
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient.connect"):
             pool = ConnectionPool(config, max_size=5, min_size=1, health_check_interval=0)
 
             # 验证max_size设置正确

@@ -11,8 +11,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import threading
 
-from src.core.connection import MultiSessionManager, SessionInfo, ConnectionManager
-from src.config.models import SSHConfig
+from rprobe.core.connection import MultiSessionManager, SessionInfo, ConnectionManager
+from rprobe.config.models import SSHConfig
 
 
 @pytest.fixture
@@ -94,7 +94,7 @@ class TestMultiSessionManagerInit:
 class TestMultiSessionManagerCreateSession:
     """测试创建会话功能"""
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_with_connection(
         self, mock_shell_session_class, mock_connection, mock_config
     ):
@@ -116,7 +116,7 @@ class TestMultiSessionManagerCreateSession:
         mock_session.initialize.assert_called_once()
         assert "test_session" in manager._sessions
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_with_pool(self, mock_shell_session_class, mock_pool, mock_config):
         """测试连接池模式创建会话"""
         manager = MultiSessionManager(
@@ -136,7 +136,7 @@ class TestMultiSessionManagerCreateSession:
         mock_session.initialize.assert_called_once()
         assert "pool_session" in manager._sessions
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_auto_id(self, mock_shell_session_class, mock_connection, mock_config):
         """测试自动生成会话 ID"""
         manager = MultiSessionManager(
@@ -155,7 +155,7 @@ class TestMultiSessionManagerCreateSession:
         assert manager._session_counter == 1
         assert "session_1" in manager._sessions
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_duplicate_id_raises_error(
         self, mock_shell_session_class, mock_connection, mock_config
     ):
@@ -181,7 +181,7 @@ class TestMultiSessionManagerCreateSession:
 class TestMultiSessionManagerDefaultSession:
     """测试默认会话功能"""
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_set_default_session(self, mock_shell_session_class, mock_connection, mock_config):
         """测试设置默认会话"""
         manager = MultiSessionManager(
@@ -203,7 +203,7 @@ class TestMultiSessionManagerDefaultSession:
         assert manager.get_default_session_id() == "session1"
         assert manager.get_default_session() == mock_session
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_auto_set_default(
         self, mock_shell_session_class, mock_connection, mock_config
     ):
@@ -223,7 +223,7 @@ class TestMultiSessionManagerDefaultSession:
 
         assert manager.get_default_session_id() == "first"
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_create_session_set_as_default_parameter(
         self, mock_shell_session_class, mock_connection, mock_config
     ):
@@ -247,7 +247,7 @@ class TestMultiSessionManagerDefaultSession:
         manager.create_session(session_id="second", set_as_default=True)
         assert manager.get_default_session_id() == "second"
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_close_session_updates_default(
         self, mock_shell_session_class, mock_connection, mock_config
     ):
@@ -296,7 +296,7 @@ class TestMultiSessionManagerDefaultSession:
             use_pool=False,
         )
 
-        with patch("src.session.shell_session.ShellSession") as mock_class:
+        with patch("rprobe.session.shell_session.ShellSession") as mock_class:
             mock_session = Mock()
             mock_session.initialize = Mock()
             mock_class.return_value = mock_session
@@ -311,7 +311,7 @@ class TestMultiSessionManagerDefaultSession:
 class TestMultiSessionManagerBackwardCompatibility:
     """测试向后兼容性"""
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_old_api_still_works(self, mock_shell_session_class):
         """测试旧的 API 调用方式仍然有效"""
         config = SSHConfig(
@@ -359,7 +359,7 @@ class TestMultiSessionManagerBackwardCompatibility:
 class TestMultiSessionManagerThreadSafety:
     """测试线程安全性"""
 
-    @patch("src.session.shell_session.ShellSession")
+    @patch("rprobe.session.shell_session.ShellSession")
     def test_concurrent_create_session(
         self, mock_shell_session_class, mock_connection, mock_config
     ):

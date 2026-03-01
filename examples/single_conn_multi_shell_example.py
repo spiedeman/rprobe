@@ -2,8 +2,8 @@
 """
 方式2: 单连接 + 多Shell 使用示例
 """
-from src.core.connection import ConnectionManager, MultiSessionManager
-from src.config.models import SSHConfig
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
+from rprobe.config.models import SSHConfig
 
 # 配置
 config = SSHConfig(

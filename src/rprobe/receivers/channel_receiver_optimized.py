@@ -10,10 +10,10 @@ import time
 from typing import Optional, Tuple, Callable
 
 # 从后端导入抽象类型和异常
-from src.backends.base import Channel, Transport
-from src.backends import ConnectionError
+from rprobe.backends.base import Channel, Transport
+from rprobe.backends import ConnectionError
 
-from src.config.models import SSHConfig
+from rprobe.config.models import SSHConfig
 
 logger = logging.getLogger(__name__)
 

@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.receivers import ChannelDataReceiver
-from src.config.models import SSHConfig
+from rprobe.receivers import ChannelDataReceiver
+from rprobe.config.models import SSHConfig
 
 
 class TestRecvOnce:

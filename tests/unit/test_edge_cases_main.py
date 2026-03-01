@@ -10,10 +10,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 
-from src import SSHClient, SSHConfig
-from src.async_executor import BackgroundTask, BackgroundTaskManager
-from src.core.connection_factory import ConnectionFactory
-from src.exceptions import ConfigurationError
+from rprobe import SSHClient, SSHConfig
+from rprobe.core.async_executor import BackgroundTask, BackgroundTaskManager
+from rprobe.core.connection_factory import ConnectionFactory
+from rprobe.exceptions import ConfigurationError
 
 
 class TestSSHConfigEdgeCases:

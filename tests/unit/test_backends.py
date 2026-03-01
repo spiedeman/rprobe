@@ -6,7 +6,7 @@ SSH后端测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.backends import (
+from rprobe.backends import (
     BackendFactory,
     AuthenticationError,
     SSHException,
@@ -16,7 +16,7 @@ from src.backends import (
 
 # 尝试导入ParamikoBackend，可能不可用
 try:
-    from src.backends.paramiko_backend import ParamikoBackend
+    from rprobe.backends.paramiko_backend import ParamikoBackend
 
     PARAMIKO_AVAILABLE = True
 except ImportError:
@@ -46,7 +46,7 @@ class TestBackendFactory:
 class TestParamikoBackend:
     """测试ParamikoBackend"""
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_success(self, mock_client_class):
         """测试成功连接"""
         mock_client = Mock()
@@ -61,7 +61,7 @@ class TestParamikoBackend:
         assert backend.is_connected()
         mock_client.connect.assert_called_once()
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_authentication_failure(self, mock_client_class):
         """测试认证失败"""
         import paramiko
@@ -76,7 +76,7 @@ class TestParamikoBackend:
 
         assert not backend.is_connected()
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_connect_ssh_exception(self, mock_client_class):
         """测试SSH异常"""
         import paramiko
@@ -89,7 +89,7 @@ class TestParamikoBackend:
         with pytest.raises(SSHException):
             backend.connect("example.com", 22, "user", password="pass")
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_disconnect(self, mock_client_class):
         """测试断开连接"""
         mock_client = Mock()
@@ -105,7 +105,7 @@ class TestParamikoBackend:
         assert not backend.is_connected()
         mock_client.close.assert_called_once()
 
-    @patch("src.backends.paramiko_backend.paramiko.SSHClient")
+    @patch("rprobe.backends.paramiko_backend.paramiko.SSHClient")
     def test_open_channel(self, mock_client_class):
         """测试打开通道"""
         mock_client = Mock()

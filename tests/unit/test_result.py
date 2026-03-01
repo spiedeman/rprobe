@@ -4,7 +4,7 @@ CommandResult 单元测试
 
 import pytest
 
-from src.core.models import CommandResult
+from rprobe.core.models import CommandResult
 
 
 class TestCommandResult:

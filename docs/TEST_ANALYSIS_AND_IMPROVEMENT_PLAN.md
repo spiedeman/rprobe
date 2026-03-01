@@ -147,7 +147,7 @@ BackgroundTaskManager 测试套件
 """
 import pytest
 from unittest.mock import Mock, patch
-from src.async_executor import BackgroundTaskManager, TaskStatus
+from src.core.async_executor import BackgroundTaskManager, TaskStatus
 
 
 class TestBackgroundTaskManager:

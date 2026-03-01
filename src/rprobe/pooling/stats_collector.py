@@ -4,7 +4,7 @@
 提供独立的统计信息收集功能，与连接池业务逻辑解耦。
 
 Example:
-    from src.pooling.stats_collector import PoolStatsCollector
+    from rprobe.pooling.stats_collector import PoolStatsCollector
 
     # 创建统计收集器
     stats = PoolStatsCollector()

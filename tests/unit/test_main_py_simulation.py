@@ -9,7 +9,7 @@ from unittest.mock import Mock, MagicMock, patch, PropertyMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src import SSHClient, SSHConfig
+from rprobe import SSHClient, SSHConfig
 
 
 def test_example_7_pool_close():
@@ -215,7 +215,7 @@ def test_example_10_connection_factory():
         password='pass'
     )
     
-    from src.core.connection_factory import ConnectionFactory
+    from rprobe.core.connection_factory import ConnectionFactory
     
     with patch.object(SSHClient, '__init__', return_value=None):
         client = SSHClient.__new__(SSHClient)

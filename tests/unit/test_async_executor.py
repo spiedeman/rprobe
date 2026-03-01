@@ -9,14 +9,14 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
-from src.async_executor import (
+from rprobe.core.async_executor import (
     ByteLimitedBuffer,
     TaskSummary,
     BackgroundTask,
     BackgroundTaskManager,
     bg,
 )
-from src.core.models import CommandResult
+from rprobe.core.models import CommandResult
 
 # ==============================================================================
 # ByteLimitedBuffer 测试

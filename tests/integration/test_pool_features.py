@@ -12,8 +12,8 @@
 import time
 import pytest
 
-from src import SSHConfig
-from src.pooling import ConnectionPool, get_pool_manager
+from rprobe import SSHConfig
+from rprobe.pooling import ConnectionPool, get_pool_manager
 
 
 @pytest.mark.integration

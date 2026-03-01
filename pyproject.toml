@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "remotessh"
-version = "1.1.0"
-description = "高性能 Python SSH 客户端库，支持连接池和结构化日志"
+name = "rprobe"
+version = "1.0.0"
+description = "轻量级远程SSH探针工具，用于快速手动测试和远程设备探查"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -42,14 +42,14 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anomalyco/remotessh"
-Documentation = "https://github.com/anomalyco/remotessh#readme"
-Repository = "https://github.com/anomalyco/remotessh"
-Issues = "https://github.com/anomalyco/remotessh/issues"
+Homepage = "https://github.com/anomalyco/rprobe"
+Documentation = "https://github.com/anomalyco/rprobe#readme"
+Repository = "https://github.com/anomalyco/rprobe"
+Issues = "https://github.com/anomalyco/rprobe/issues"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
+where = ["src"]
+include = ["rprobe*"]
 
 [tool.black]
 line-length = 100

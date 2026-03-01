@@ -12,10 +12,10 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest.mock import Mock, patch, MagicMock
-from src.pooling import ConnectionPool
-from src.core.connection import ConnectionManager, MultiSessionManager
-from src.session.shell_session import ShellSession
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
+from rprobe.session.shell_session import ShellSession
+from rprobe.config.models import SSHConfig
 
 
 def mock_ssh_setup():

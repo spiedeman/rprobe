@@ -11,7 +11,7 @@
 
 import pytest
 
-from src import SSHClient, SSHConfig
+from rprobe import SSHClient, SSHConfig
 
 
 @pytest.mark.integration

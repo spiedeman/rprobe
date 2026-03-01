@@ -11,9 +11,9 @@ from contextlib import contextmanager
 from typing import Optional, Union, Generator, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.backends.base import Channel, Transport
-    from src.core.connection import ConnectionManager
-    from src.pooling import ConnectionPool
+    from rprobe.backends.base import Channel, Transport
+    from rprobe.core.connection import ConnectionManager
+    from rprobe.pooling import ConnectionPool
 
 
 logger = logging.getLogger(__name__)

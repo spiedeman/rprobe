@@ -12,8 +12,8 @@
 import time
 import pytest
 
-from src import SSHConfig
-from src.core.connection import ConnectionManager, MultiSessionManager
+from rprobe import SSHConfig
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
 from tests.integration.test_config import SLEEP_TIME_SHORT
 
 
@@ -454,7 +454,7 @@ class TestMultiSessionWithPool:
         if not test_environment["has_real_ssh"]:
             pytest.skip("未设置真实 SSH 测试环境变量")
 
-        from src.pooling import ConnectionPool
+        from rprobe.pooling import ConnectionPool
 
         config = SSHConfig(
             host=test_environment["test_host"],

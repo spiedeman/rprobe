@@ -10,8 +10,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.core.connection import ConnectionManager, MultiSessionManager
-from src.config.models import SSHConfig
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
+from rprobe.config.models import SSHConfig
 
 
 def demo_multi_session():

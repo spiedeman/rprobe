@@ -14,9 +14,9 @@ import threading
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 
-from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool, get_pool_manager
-from src.core.connection import ConnectionManager, MultiSessionManager
+from rprobe import SSHClient, SSHConfig
+from rprobe.pooling import ConnectionPool, get_pool_manager
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
 
 
 @pytest.mark.integration

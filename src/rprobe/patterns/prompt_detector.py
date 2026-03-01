@@ -13,8 +13,8 @@ import re
 import time
 from typing import List, Optional
 
-from src.patterns.prompt_patterns import PromptPattern, PromptPatternBuilder, PromptCategory
-from src.utils.ansi_cleaner import ANSICleaner
+from rprobe.patterns.prompt_patterns import PromptPattern, PromptPatternBuilder, PromptCategory
+from rprobe.utils.ansi_cleaner import ANSICleaner
 
 logger = logging.getLogger(__name__)
 

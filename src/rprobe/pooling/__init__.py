@@ -11,7 +11,7 @@ Features:
 - 线程安全：支持多线程并发访问
 
 Example:
-    from src.pooling import ConnectionPool
+    from rprobe.pooling import ConnectionPool
 
     # 创建连接池
     pool = ConnectionPool(
@@ -39,10 +39,10 @@ from collections import deque
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 
-from src.config.models import SSHConfig
-from src.exceptions import PoolTimeoutError
-from src.core.connection import ConnectionManager
-from src.pooling.stats_collector import PoolStatsCollector
+from rprobe.config.models import SSHConfig
+from rprobe.exceptions import PoolTimeoutError
+from rprobe.core.connection import ConnectionManager
+from rprobe.pooling.stats_collector import PoolStatsCollector
 
 logger = logging.getLogger(__name__)
 

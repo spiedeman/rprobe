@@ -71,7 +71,7 @@ def example_3_error_handling():
     print("示例3: 错误处理")
     print("=" * 60)
     
-    from src.exceptions import CommandTimeoutError
+    from rprobe.exceptions import CommandTimeoutError
     
     config = SSHConfig(
         host="localhost",

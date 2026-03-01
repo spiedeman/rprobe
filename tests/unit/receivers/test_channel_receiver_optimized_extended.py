@@ -8,11 +8,11 @@ from unittest.mock import Mock, MagicMock, patch
 
 import pytest
 
-from src.config.models import SSHConfig
-from src.backends import ConnectionError
+from rprobe.config.models import SSHConfig
+from rprobe.backends import ConnectionError
 
 # 使用 TYPE_CHECKING 避免循环导入
-from src.receivers.channel_receiver_optimized import (
+from rprobe.receivers.channel_receiver_optimized import (
     OptimizedChannelDataReceiver,
     AdaptivePollingReceiver,
     BatchedPromptDetector,
@@ -256,7 +256,7 @@ class TestBatchedPromptDetectorExtended:
 
     def test_should_check_time_only(self, mock_detector):
         """测试仅时间条件满足"""
-        from src.receivers.channel_receiver_optimized import BatchedPromptDetector
+        from rprobe.receivers.channel_receiver_optimized import BatchedPromptDetector
 
         detector = BatchedPromptDetector(
             mock_detector, check_interval=0.1, min_data_size=100
@@ -273,7 +273,7 @@ class TestBatchedPromptDetectorExtended:
 
     def test_should_check_size_only(self, mock_detector):
         """测试仅数据量条件满足"""
-        from src.receivers.channel_receiver_optimized import BatchedPromptDetector
+        from rprobe.receivers.channel_receiver_optimized import BatchedPromptDetector
 
         detector = BatchedPromptDetector(
             mock_detector, check_interval=0.1, min_data_size=100
@@ -287,7 +287,7 @@ class TestBatchedPromptDetectorExtended:
 
     def test_check_updates_both_tracking_vars(self, mock_detector):
         """测试检查更新所有跟踪变量"""
-        from src.receivers.channel_receiver_optimized import BatchedPromptDetector
+        from rprobe.receivers.channel_receiver_optimized import BatchedPromptDetector
 
         detector = BatchedPromptDetector(
             mock_detector, check_interval=0.1, min_data_size=10

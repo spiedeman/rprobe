@@ -16,9 +16,9 @@ import threading
 import concurrent.futures
 import pytest
 
-from src import SSHConfig, SSHClient, load_config
-from src.pooling import get_pool_manager
-from src.exceptions import CommandTimeoutError, ConnectionError
+from rprobe import SSHConfig, SSHClient, load_config
+from rprobe.pooling import get_pool_manager
+from rprobe.exceptions import CommandTimeoutError, ConnectionError
 from tests.integration.test_config import SLEEP_TIME_LONG, SLEEP_TIME_MEDIUM
 
 

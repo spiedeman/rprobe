@@ -20,7 +20,7 @@ try:
 except ImportError:
     PARAMIKO_AVAILABLE = False
 
-from src.backends import (
+from rprobe.backends import (
     BackendFactory,
     AuthenticationError,
     ConnectionError,
@@ -48,11 +48,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_path_1_password_auth(self):
         """路径1: 使用密码认证连接"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -78,11 +78,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_path_2_key_auth_without_passphrase(self):
         """路径2: 使用密钥认证（无密码）"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -107,11 +107,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_path_3_key_auth_with_passphrase(self):
         """路径3: 使用密钥认证（有密码）"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -136,11 +136,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_exception_path_authentication(self):
         """异常路径1: 认证失败异常处理"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = paramiko.AuthenticationException("Auth failed")
             mock_client_class.return_value = mock_client
@@ -157,11 +157,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_exception_path_ssh_error(self):
         """异常路径2: SSH错误异常处理"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = paramiko.SSHException("SSH error")
             mock_client_class.return_value = mock_client
@@ -176,11 +176,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_connect_exception_path_general_error(self):
         """异常路径3: 一般错误异常处理"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_client.connect.side_effect = socket.error("Connection refused")
             mock_client_class.return_value = mock_client
@@ -192,11 +192,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_open_channel_path_connected(self):
         """路径: 已连接状态下打开通道"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_channel = Mock()
@@ -218,7 +218,7 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_open_channel_path_not_connected(self):
         """异常路径: 未连接状态下打开通道"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
@@ -229,11 +229,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_disconnect_path_connected(self):
         """路径: 连接状态下断开"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -250,7 +250,7 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_disconnect_path_already_disconnected(self):
         """路径: 已断开状态下再次断开"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
@@ -261,11 +261,11 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_get_transport_path_connected(self):
         """路径: 获取传输层对象"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = Mock()
             mock_transport = Mock()
             mock_transport.is_active.return_value = True
@@ -280,7 +280,7 @@ class TestParamikoBackendWhiteBox:
     @paramiko_required
     def test_get_transport_path_disconnected(self):
         """路径: 未连接时获取传输层"""
-        from src.backends.paramiko_backend import ParamikoBackend
+        from rprobe.backends.paramiko_backend import ParamikoBackend
 
         backend = ParamikoBackend()
 
@@ -293,7 +293,7 @@ class TestBackendFactoryWhiteBox:
 
     def test_register_path_first_backend(self, reset_backend_factory):
         """路径: 注册第一个后端（自动设为默认）"""
-        from src.backends.base import SSHBackend
+        from rprobe.backends.base import SSHBackend
 
         class MockBackend(SSHBackend):
             def connect(self, **kwargs):
@@ -331,7 +331,7 @@ class TestBackendFactoryWhiteBox:
 
     def test_register_path_not_default(self, reset_backend_factory):
         """路径: 注册后端但不设为默认"""
-        from src.backends.base import SSHBackend
+        from rprobe.backends.base import SSHBackend
 
         class MockBackend1(SSHBackend):
             def connect(self, **kwargs):
@@ -391,7 +391,7 @@ class TestBackendFactoryWhiteBox:
 
     def test_create_path_default(self, reset_backend_factory):
         """路径: 创建默认后端"""
-        from src.backends.base import SSHBackend
+        from rprobe.backends.base import SSHBackend
 
         class MockBackend(SSHBackend):
             def __init__(self):
@@ -427,7 +427,7 @@ class TestBackendFactoryWhiteBox:
 
     def test_create_path_specific(self, reset_backend_factory):
         """路径: 创建指定后端"""
-        from src.backends.base import SSHBackend
+        from rprobe.backends.base import SSHBackend
 
         class MockBackend1(SSHBackend):
             def connect(self, **kwargs):
@@ -489,7 +489,7 @@ class TestBackendFactoryWhiteBox:
 
     def test_is_backend_available_path_exists(self, reset_backend_factory):
         """路径: 检查存在的后端"""
-        from src.backends.base import SSHBackend
+        from rprobe.backends.base import SSHBackend
 
         class MockBackend(SSHBackend):
             def connect(self, **kwargs):
@@ -529,7 +529,7 @@ class TestParamikoChannelWhiteBox:
     @paramiko_required
     def test_recv_success_path(self):
         """路径: 成功接收数据"""
-        from src.backends.paramiko_backend import ParamikoChannel
+        from rprobe.backends.paramiko_backend import ParamikoChannel
 
         mock_channel = Mock()
         mock_channel.recv.return_value = b"test data"
@@ -543,7 +543,7 @@ class TestParamikoChannelWhiteBox:
     @paramiko_required
     def test_recv_exception_path(self):
         """异常路径: 接收数据失败"""
-        from src.backends.paramiko_backend import ParamikoChannel, ChannelException
+        from rprobe.backends.paramiko_backend import ParamikoChannel, ChannelException
 
         mock_channel = Mock()
         mock_channel.recv.side_effect = paramiko.SSHException("Recv failed")
@@ -556,7 +556,7 @@ class TestParamikoChannelWhiteBox:
     @paramiko_required
     def test_send_success_path(self):
         """路径: 成功发送数据"""
-        from src.backends.paramiko_backend import ParamikoChannel
+        from rprobe.backends.paramiko_backend import ParamikoChannel
 
         mock_channel = Mock()
         mock_channel.send.return_value = 9  # 发送的字节数
@@ -570,7 +570,7 @@ class TestParamikoChannelWhiteBox:
     @paramiko_required
     def test_send_exception_path(self):
         """异常路径: 发送数据失败"""
-        from src.backends.paramiko_backend import ParamikoChannel, ChannelException
+        from rprobe.backends.paramiko_backend import ParamikoChannel, ChannelException
 
         mock_channel = Mock()
         mock_channel.send.side_effect = paramiko.SSHException("Send failed")

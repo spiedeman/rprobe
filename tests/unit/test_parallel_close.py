@@ -7,8 +7,8 @@ import time
 
 import pytest
 
-from src.pooling import ConnectionPool, PooledConnection
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool, PooledConnection
+from rprobe.config.models import SSHConfig
 
 
 class TestParallelClose:

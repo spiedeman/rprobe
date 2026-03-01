@@ -6,9 +6,9 @@ import time
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.core.connection import ConnectionManager, MultiSessionManager, SessionInfo
-from src.session.shell_session import ShellSession
-from src.config.models import SSHConfig
+from rprobe.core.connection import ConnectionManager, MultiSessionManager, SessionInfo
+from rprobe.session.shell_session import ShellSession
+from rprobe.config.models import SSHConfig
 
 
 class TestMultiSessionManagerCreate:
@@ -23,7 +23,7 @@ class TestMultiSessionManagerCreate:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -58,7 +58,7 @@ class TestMultiSessionManagerCreate:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -91,7 +91,7 @@ class TestMultiSessionManagerCreate:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -128,7 +128,7 @@ class TestMultiSessionManagerCreate:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -169,7 +169,7 @@ class TestMultiSessionManagerGet:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -202,7 +202,7 @@ class TestMultiSessionManagerGet:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = MagicMock()
             mock_transport = MagicMock()
             mock_client.get_transport.return_value = mock_transport
@@ -231,7 +231,7 @@ class TestMultiSessionManagerClose:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
             patch.object(ShellSession, "close", return_value=None),
@@ -268,7 +268,7 @@ class TestMultiSessionManagerClose:
             password="test",
         )
 
-        with patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
+        with patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class:
             mock_client = MagicMock()
             mock_transport = MagicMock()
             mock_client.get_transport.return_value = mock_transport
@@ -293,7 +293,7 @@ class TestMultiSessionManagerClose:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
             patch.object(ShellSession, "close", return_value=None),
@@ -334,7 +334,7 @@ class TestMultiSessionManagerInfo:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -373,7 +373,7 @@ class TestMultiSessionManagerInfo:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
         ):
@@ -415,7 +415,7 @@ class TestMultiSessionManagerActiveCount:
         )
 
         with (
-            patch("src.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
+            patch("rprobe.backends.paramiko_backend.paramiko.SSHClient") as mock_client_class,
             patch.object(ShellSession, "__init__", return_value=None),
             patch.object(ShellSession, "initialize", return_value="$"),
             patch.object(ShellSession, "close", return_value=None),

@@ -6,7 +6,7 @@
 """
 import time
 from src import SSHClient, SSHConfig
-from src.logging_config import configure_logging, get_logger
+from rprobe.logging_config import configure_logging, get_logger
 
 
 def example_1_simple_logging():

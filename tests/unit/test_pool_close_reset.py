@@ -6,8 +6,8 @@ import pytest
 import time
 from unittest.mock import Mock, patch, MagicMock
 
-from src.pooling import ConnectionPool
-from src.config.models import SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.config.models import SSHConfig
 
 
 class TestConnectionPoolClose:
@@ -21,7 +21,7 @@ class TestConnectionPoolClose:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -44,7 +44,7 @@ class TestConnectionPoolClose:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -75,7 +75,7 @@ class TestConnectionPoolClose:
             mock_connections.append(mock_conn)
             return mock_conn
 
-        with patch("src.pooling.ConnectionManager", side_effect=create_mock_conn):
+        with patch("rprobe.pooling.ConnectionManager", side_effect=create_mock_conn):
             pool = ConnectionPool(config, max_size=3, min_size=3, health_check_interval=0)
 
             # 获取一个连接使用
@@ -101,7 +101,7 @@ class TestConnectionPoolReset:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -129,7 +129,7 @@ class TestConnectionPoolReset:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -151,7 +151,7 @@ class TestConnectionPoolReset:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -187,7 +187,7 @@ class TestConnectionPoolReset:
             create_count[0] += 1
             return mock_conn
 
-        with patch("src.pooling.ConnectionManager", side_effect=create_mock_conn):
+        with patch("rprobe.pooling.ConnectionManager", side_effect=create_mock_conn):
             pool = ConnectionPool(config, max_size=2, min_size=2, health_check_interval=0)
 
             # 记录初始创建数
@@ -207,7 +207,7 @@ class TestConnectionPoolReset:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn
@@ -238,7 +238,7 @@ class TestConnectionPoolContextManager:
             password="test",
         )
 
-        with patch("src.pooling.ConnectionManager") as mock_conn_class:
+        with patch("rprobe.pooling.ConnectionManager") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.is_connected = True
             mock_conn_class.return_value = mock_conn

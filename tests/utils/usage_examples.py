@@ -135,7 +135,7 @@ def _setup_mock_connection_old(mock_ssh_client_class, mock_ssh_config):
     mock_client.get_transport.return_value = mock_transport
     mock_ssh_client_class.return_value = mock_client
 
-    from src import SSHClient
+    from rprobe import SSHClient
 
     client = SSHClient(mock_ssh_config)
     client.connect()

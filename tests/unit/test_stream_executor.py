@@ -8,9 +8,9 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import time
 
-from src.core.stream_executor import StreamExecutor
-from src.core.models import CommandResult
-from src.config.models import SSHConfig
+from rprobe.core.stream_executor import StreamExecutor
+from rprobe.core.models import CommandResult
+from rprobe.config.models import SSHConfig
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ class TestStreamExecutorInit:
 
     def test_init_with_config(self, mock_ssh_client):
         """测试使用配置初始化"""
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.mode = "ADAPTIVE"
             mock_create.return_value = mock_receiver
@@ -83,7 +83,7 @@ class TestStreamExecutorExecute:
         mock_ssh_client._pool = mock_pool
 
         # 设置 Mock 接收器
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.return_value = 0
             mock_create.return_value = mock_receiver
@@ -118,7 +118,7 @@ class TestStreamExecutorExecute:
         mock_ssh_client._connection = mock_connection
 
         # 设置 Mock 接收器
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.return_value = 0
             mock_create.return_value = mock_receiver
@@ -152,7 +152,7 @@ class TestStreamExecutorTimeout:
         mock_transport.open_session.return_value = mock_channel
         mock_ssh_client._connection = mock_connection
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.side_effect = TimeoutError("Command timeout")
             mock_create.return_value = mock_receiver
@@ -175,7 +175,7 @@ class TestStreamExecutorErrorHandling:
         mock_transport.open_session.side_effect = Exception("Connection failed")
         mock_ssh_client._connection = mock_connection
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_create.return_value = mock_receiver
 
@@ -198,7 +198,7 @@ class TestStreamExecutorErrorHandling:
         # 模拟通道关闭时抛出异常
         mock_channel.close.side_effect = Exception("Close error")
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.return_value = 0
             mock_create.return_value = mock_receiver
@@ -231,7 +231,7 @@ class TestStreamExecutorCallback:
             handler(b"chunk3", b"")
             return 0
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream = mock_recv_stream
             mock_create.return_value = mock_receiver
@@ -265,7 +265,7 @@ class TestStreamExecutorCallback:
             handler(b"stdout_data", b"stderr_data")
             return 1  # 非零退出码
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream = mock_recv_stream
             mock_create.return_value = mock_receiver
@@ -300,7 +300,7 @@ class TestStreamExecutorConfig:
         mock_transport.open_session.return_value = mock_channel
         mock_ssh_client._connection = mock_connection
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.return_value = 0
             mock_create.return_value = mock_receiver
@@ -323,7 +323,7 @@ class TestStreamExecutorConfig:
         mock_transport.open_session.return_value = mock_channel
         mock_ssh_client._connection = mock_connection
 
-        with patch("src.core.stream_executor.create_receiver") as mock_create:
+        with patch("rprobe.core.stream_executor.create_receiver") as mock_create:
             mock_receiver = Mock()
             mock_receiver.recv_stream.return_value = 0
             mock_create.return_value = mock_receiver

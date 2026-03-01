@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch, MagicMock
 import pytest
 import paramiko
 
-from src.config.models import SSHConfig
-from src.receivers import (
+from rprobe.config.models import SSHConfig
+from rprobe.receivers import (
     OptimizedChannelDataReceiver,
     AdaptivePollingReceiver,
     BatchedPromptDetector,

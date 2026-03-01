@@ -15,9 +15,9 @@ import pytest
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from src import SSHClient, SSHConfig
-from src.pooling import ConnectionPool
-from src.core.connection import ConnectionManager, MultiSessionManager
+from rprobe import SSHClient, SSHConfig
+from rprobe.pooling import ConnectionPool
+from rprobe.core.connection import ConnectionManager, MultiSessionManager
 
 # ============================================================================
 # 1. 等价类划分测试 (Equivalence Partitioning)

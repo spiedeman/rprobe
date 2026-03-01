@@ -5,7 +5,7 @@ ANSI Cleaner 模块单元测试
 
 import pytest
 
-from src.utils.ansi_cleaner import ANSICleaner, ANSICleanupRule, ANSISequenceType, strip_ansi
+from rprobe.utils.ansi_cleaner import ANSICleaner, ANSICleanupRule, ANSISequenceType, strip_ansi
 
 
 class TestANSICleanerBasic:

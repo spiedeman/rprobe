@@ -4,7 +4,7 @@ SSHConfig 配置类单元测试
 
 import pytest
 
-from src.config.models import SSHConfig
+from rprobe.config.models import SSHConfig
 
 
 class TestSSHConfig:
@@ -62,7 +62,7 @@ class TestSSHConfig:
 
     def test_empty_host_raises_error(self):
         """测试空主机地址应抛出错误"""
-        from src.exceptions import ConfigurationError
+        from rprobe.exceptions import ConfigurationError
 
         with pytest.raises(ConfigurationError, match="主机地址不能为空"):
             SSHConfig(
@@ -73,7 +73,7 @@ class TestSSHConfig:
 
     def test_empty_username_raises_error(self):
         """测试空用户名应抛出错误"""
-        from src.exceptions import ConfigurationError
+        from rprobe.exceptions import ConfigurationError
 
         with pytest.raises(ConfigurationError, match="用户名不能为空"):
             SSHConfig(
@@ -84,7 +84,7 @@ class TestSSHConfig:
 
     def test_both_auth_methods_raises_error(self):
         """测试同时指定密码和密钥应抛出错误"""
-        from src.exceptions import ConfigurationError
+        from rprobe.exceptions import ConfigurationError
 
         with pytest.raises(ConfigurationError, match="密码和密钥不能同时指定"):
             SSHConfig(
@@ -96,7 +96,7 @@ class TestSSHConfig:
 
     def test_no_auth_method_raises_error(self):
         """测试不指定认证方式应抛出错误"""
-        from src.exceptions import ConfigurationError
+        from rprobe.exceptions import ConfigurationError
 
         with pytest.raises(ConfigurationError, match="必须指定密码或密钥文件路径"):
             SSHConfig(

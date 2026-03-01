@@ -9,9 +9,9 @@ from unittest.mock import Mock, patch, MagicMock
 import pytest
 import paramiko
 
-from src.config.models import SSHConfig
-from src.session import ShellSession
-from src.patterns import PromptDetector
+from rprobe.config.models import SSHConfig
+from rprobe.session import ShellSession
+from rprobe.patterns import PromptDetector
 
 
 @pytest.fixture

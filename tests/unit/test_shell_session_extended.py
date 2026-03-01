@@ -8,9 +8,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.session import ShellSession
-from src.config.models import SSHConfig
-from src.patterns import PromptDetector
+from rprobe.session import ShellSession
+from rprobe.config.models import SSHConfig
+from rprobe.patterns import PromptDetector
 
 
 class TestShellSessionBasic:
