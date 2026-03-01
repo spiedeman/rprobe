@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-RemoteSSH - 高性能SSH客户端库演示
+rprobe - 轻量级远程SSH探针工具演示
 
-这是RemoteSSH库的演示脚本，展示了所有主要功能。
+这是 rprobe 库的演示脚本，展示了所有主要功能。
 运行前请配置环境变量或修改代码中的连接信息。
 
 运行方式:
@@ -299,63 +299,215 @@ def example_7_pool_close():
 def example_8_background_tasks():
     """示例8: 后台任务执行器（v1.4.0新功能）"""
     print("\n" + "=" * 60)
-    print("示例8: 后台任务执行器（v1.4.0新功能）")
+    print("示例8: 后台任务执行器 - 状态机管理（v2.0新功能）")
     print("=" * 60)
 
     config = get_config()
 
     try:
         with SSHClient(config) as client:
-            print("\n1. 启动后台任务（模拟长时间运行的监控）:")
-            # 启动一个后台任务（例如：持续监控日志）
+            print("\n1. 启动后台任务（强制Shell模式，支持优雅停止）:")
+            # 启动一个后台任务（例如：tcpdump抓包）
             task = client.bg(
-                'for i in $(seq 1 5); do echo "Log entry $i"; sleep 1; done',
+                'for i in $(seq 1 10); do echo "Log entry $i at $(date)"; sleep 1; done',
                 name="log_monitor",
-                buffer_size_mb=1,  # 1MB 缓冲区限制
+                buffer_size_mb=5,  # 5MB 缓冲区限制
             )
             print(f"   ✓ 后台任务已启动: ID={task.id}")
             print(f"   ✓ 任务名称: {task.name}")
-            print(f"   ✓ 命令: {task.command}")
+            print(f"   ✓ 强制Shell模式: 支持SIGINT信号发送")
 
-            print("\n2. 主线程继续执行其他工作:")
-            for i in range(3):
-                print(f"   • 主线程工作 {i + 1}/3...")
-                time.sleep(0.5)
+            print("\n2. 使用状态机查询任务状态:")
+            from rprobe.core.task_status import TaskStatus
+            
+            # 展示状态枚举
+            print(f"   当前状态: {task.status} ({task.status.value})")
+            print(f"   状态类型: TaskStatus 枚举")
+            print(f"   是否运行中: {task.is_running()}")
+            print(f"   是否终态: {task.status.is_terminal}")
+            
+            # 等待一会儿
+            time.sleep(2)
+            print(f"   已运行时长: {task.duration:.1f} 秒")
 
-            print("\n3. 检查任务状态:")
-            if task.is_running():
-                print(f"   ✓ 任务运行中，已运行 {task.duration:.1f} 秒")
-            elif task.is_completed():
-                print("   ✓ 任务已完成")
-
-            print("\n4. 获取任务摘要（轻量级）:")
+            print("\n3. 获取任务摘要（包含状态历史）:")
             summary = task.get_summary(tail_lines=3)
             print(f"   - 状态: {summary.status}")
+            print(f"   - 状态枚举: {summary.status_enum}")
             print(f"   - 时长: {summary.duration:.1f}秒")
             print(f"   - 输出行数: {summary.lines_output}")
-            print(f"   - 最后3行预览: {summary.last_lines}")
+            print(f"   - 状态历史记录数: {len(summary.status_history)}")
+            
+            # 展示状态历史
+            if summary.status_history:
+                print("   - 状态流转:")
+                for event in summary.status_history[:3]:
+                    print(f"     {event['from']} -> {event['to']} ({event['reason']})")
 
-            print("\n5. 停止后台任务:")
+            print("\n4. 优雅停止任务（发送SIGINT信号）:")
             if task.is_running():
-                task.stop(graceful=True, timeout=3.0)
-                print("   ✓ 任务已优雅停止")
+                print("   发送 SIGINT 信号 (Ctrl+C) 到远程进程...")
+                task.stop(graceful=True, timeout=5.0)
+                print(f"   ✓ 任务已停止，最终状态: {task.status}")
+                
+                if task.is_stopped():
+                    print("   ✓ 状态确认: STOPPED（用户手动停止）")
+                elif task.is_completed():
+                    print("   ✓ 状态确认: COMPLETED（正常完成）")
 
-            print("\n6. 查看完整输出:")
+            print("\n5. 查看完整输出:")
             output = task.get_output()
             if output:
                 lines = output.strip().split("\n")
                 print(f"   总输出: {len(lines)} 行")
-                print(f"   首行: {lines[0] if lines else 'N/A'}")
+                if lines:
+                    print(f"   首行: {lines[0][:60]}...")
+                    print(f"   末行: {lines[-1][:60]}...")
 
     except Exception as e:
         print(f"   ⚠ 演示失败: {e}")
         print("   提示: 后台任务执行器需要真实SSH连接")
 
 
-def example_9_streaming_transfer():
-    """示例9: 流式数据传输（v1.4.0功能）"""
+def example_9_exception_mapper():
+    """示例9: 异常映射器（v2.0新功能）"""
     print("\n" + "=" * 60)
-    print("示例9: 流式数据传输（大文件处理）")
+    print("示例9: 统一异常映射器")
+    print("=" * 60)
+
+    print("\n1. 异常映射器介绍:")
+    print("   rprobe 使用统一的异常映射策略")
+    print("   将后端特定异常（如 paramiko）映射到自定义异常")
+    print("   确保不同后端抛出一致的异常类型")
+
+    from rprobe.backends.base import (
+        AuthenticationError,
+        ConnectionError,
+        SSHException,
+        ChannelException,
+    )
+
+    print("\n2. 自定义异常类型:")
+    print("   • AuthenticationError - 认证失败")
+    print("   • ConnectionError - 连接错误")
+    print("   • SSHException - SSH协议错误")
+    print("   • ChannelException - 通道操作错误")
+
+    print("\n3. 异常映射示例:")
+    print("   paramiko.AuthenticationException → AuthenticationError")
+    print("   paramiko.SSHException('No existing session') → ConnectionError")
+    print("   ConnectionRefusedError → ConnectionError")
+    print("   TimeoutError → ConnectionError")
+
+    print("\n4. 使用异常映射器:")
+    try:
+        from rprobe.backends.exception_mapper import get_paramiko_exception_mapper
+        
+        mapper = get_paramiko_exception_mapper()
+        print(f"   ✓ 异常映射器已加载")
+        print(f"   ✓ 支持类型映射: {len(mapper._mappings)} 种")
+        print(f"   ✓ 支持消息映射: {len(mapper._message_mappings)} 种")
+        
+        # 展示映射规则
+        print("\n5. 细粒度映射规则:")
+        for keyword in mapper._message_mappings.keys():
+            print(f"   • 包含 '{keyword}' 的消息 → ConnectionError")
+
+    except ImportError as e:
+        print(f"   ⚠ 异常映射器未加载: {e}")
+
+    print("\n6. 在代码中使用:")
+    print("   try:")
+    print("       client.connect(...)")
+    print("   except AuthenticationError as e:")
+    print("       print(f'认证失败: {e}')")
+    print("   except ConnectionError as e:")
+    print("       print(f'连接失败: {e}')")
+
+
+def example_10_architecture_contract():
+    """示例10: 架构契约验证（v2.0新功能）"""
+    print("\n" + "=" * 60)
+    print("示例10: 架构契约验证")
+    print("=" * 60)
+
+    print("\n1. 架构契约介绍:")
+    print("   rprobe 使用解耦架构，支持多种SSH后端")
+    print("   架构契约确保所有后端实现一致的接口")
+
+    print("\n2. 核心接口:")
+    print("   • SSHBackend - 后端抽象基类")
+    print("   • Channel - 通道抽象接口")
+    print("   • Transport - 传输层抽象接口")
+
+    print("\n3. 当前实现:")
+    from rprobe.backends.paramiko_backend import (
+        ParamikoBackend,
+        ParamikoChannel,
+        ParamikoTransport,
+    )
+
+    print(f"   ✓ ParamikoBackend - 已实现所有必需方法")
+    print(f"   ✓ ParamikoChannel - 已实现 {len([m for m in dir(ParamikoChannel) if not m.startswith('_')])} 个方法")
+    print(f"   ✓ ParamikoTransport - 已实现 {len([m for m in dir(ParamikoTransport) if not m.startswith('_')])} 个方法")
+
+    print("\n4. 关键方法示例:")
+    print("   Channel 必需方法:")
+    print("     - recv(), send(), close()")
+    print("     - exec_command(), invoke_shell()")
+    print("     - get_transport() - 获取关联的 transport")
+    print("     - getpeername() - 获取远程地址")
+
+    print("\n5. 运行契约测试:")
+    print("   $ pytest tests/contracts/ -v")
+    print("   验证所有后端实现满足接口契约")
+
+    print("\n6. 扩展新后端:")
+    print("   可以添加 AsyncSSHBackend、LibSSHBackend 等")
+    print("   只需实现相同的接口，无需修改上层代码")
+
+
+def example_11_code_review_checklist():
+    """示例11: 代码审查检查清单"""
+    print("\n" + "=" * 60)
+    print("示例11: 代码审查检查清单")
+    print("=" * 60)
+
+    print("\n1. 检查清单介绍:")
+    print("   rprobe 提供完整的代码审查检查清单")
+    print("   确保代码质量和架构一致性")
+
+    print("\n2. 检查清单内容:")
+    print("   • 架构设计检查 - 接口完整性、解耦一致性")
+    print("   • 连接池检查 - 上下文管理器正确使用")
+    print("   • 异常处理检查 - 异常映射完整性")
+    print("   • 测试覆盖检查 - Mock保真度、集成测试")
+    print("   • 性能与可观测性 - 日志、性能优化")
+
+    print("\n3. 关键检查点:")
+    print("   ✓ 所有抽象方法都已实现")
+    print("   ✓ 新增方法已添加到契约测试")
+    print("   ✓ 正确使用 with 语句管理连接池")
+    print("   ✓ 所有异常都映射到自定义异常")
+    print("   ✓ 关键路径有结构化日志")
+
+    print("\n4. 查看完整检查清单:")
+    print("   $ cat docs/CODE_REVIEW_CHECKLIST.md")
+    print("   包含详细的检查项和常见问题解答")
+
+    print("\n5. 审查记录模板:")
+    print("   使用提供的模板记录审查结果")
+    print("   包含：检查项、发现问题、建议、结论")
+
+    print("\n6. 持续改进:")
+    print("   根据项目经验不断更新检查清单")
+    print("   确保团队遵循统一的质量标准")
+
+
+def example_12_streaming_transfer():
+    """示例12: 流式数据传输（v1.4.0功能）"""
+    print("\n" + "=" * 60)
+    print("示例12: 流式数据传输（大文件处理）")
     print("=" * 60)
 
     config = get_config()
@@ -373,7 +525,6 @@ def example_9_streaming_transfer():
                 if stdout_chunk:
                     received_chunks.append(stdout_chunk)
                     total_bytes += len(stdout_chunk)
-                    # 实时处理，例如：写入文件、解析等
 
             # 执行命令并流式接收
             print("   执行命令: seq 1 1000")
@@ -396,10 +547,10 @@ def example_9_streaming_transfer():
         print(f"   ⚠ 演示失败: {e}")
 
 
-def example_10_connection_factory():
-    """示例10: ConnectionFactory 使用（v1.4.0新功能）"""
+def example_13_connection_factory():
+    """示例13: ConnectionFactory 使用（v1.4.0新功能）"""
     print("\n" + "=" * 60)
-    print("示例10: ConnectionFactory - 统一Channel创建")
+    print("示例13: ConnectionFactory - 统一Channel创建")
     print("=" * 60)
 
     from rprobe.core.connection_factory import ConnectionFactory
@@ -465,13 +616,16 @@ def run_all_examples():
         ("并行创建连接", example_5_parallel_creation),
         ("配置管理", example_6_config_management),
         ("连接池并行关闭", example_7_pool_close),
-        ("后台任务执行器", example_8_background_tasks),
-        ("流式数据传输", example_9_streaming_transfer),
-        ("ConnectionFactory", example_10_connection_factory),
+        ("后台任务执行器 - 状态机", example_8_background_tasks),
+        ("统一异常映射器", example_9_exception_mapper),
+        ("架构契约验证", example_10_architecture_contract),
+        ("代码审查检查清单", example_11_code_review_checklist),
+        ("流式数据传输", example_12_streaming_transfer),
+        ("ConnectionFactory", example_13_connection_factory),
     ]
 
     print("\n" + "=" * 60)
-    print("RemoteSSH 演示脚本")
+    print("rprobe - 轻量级远程SSH探针工具演示")
     print("=" * 60)
     print("\n注意: 请确保已设置SSH连接信息")
 
