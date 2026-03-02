@@ -88,7 +88,9 @@ class ByteLimitedBuffer:
 @dataclass
 class TaskSummary:
     """任务摘要"""
+
     task_id: str
+    name: Optional[str]
     command: str
     status: str
     status_enum: TaskStatus
@@ -122,6 +124,7 @@ class TaskSummary:
 @dataclass
 class BatchTaskResult:
     """批量任务结果"""
+
     tasks: List[BackgroundTask]
     manager: "BackgroundTaskManager"
 
@@ -156,8 +159,8 @@ class BackgroundTask:
 
     # 信号映射（Shell模式支持）
     SIGNAL_MAP = {
-        'SIGINT': b'\x03',
-        'SIGTERM': b'\x04',
+        "SIGINT": b"\x03",
+        "SIGTERM": b"\x04",
     }
 
     def __init__(
@@ -204,10 +207,7 @@ class BackgroundTask:
         self._state_machine.transition_to(TaskStatus.RUNNING, "task_started")
 
         # 启动监控线程
-        self._monitor_thread = threading.Thread(
-            target=self._monitor,
-            name=f"TaskMonitor-{self.id}"
-        )
+        self._monitor_thread = threading.Thread(target=self._monitor, name=f"TaskMonitor-{self.id}")
         self._monitor_thread.daemon = True
         self._monitor_thread.start()
 
@@ -252,17 +252,14 @@ class BackgroundTask:
         logger.debug(f"停止任务 [{self.id}] graceful={graceful} timeout={timeout}s")
 
         self._state_machine.transition_to(
-            TaskStatus.STOPPING,
-            reason="user_stop_requested",
-            graceful=graceful
+            TaskStatus.STOPPING, reason="user_stop_requested", graceful=graceful
         )
 
         if graceful:
             success = self._send_signal_and_wait(timeout)
             if success:
                 self._state_machine.transition_to(
-                    TaskStatus.STOPPED,
-                    reason="graceful_stop_success"
+                    TaskStatus.STOPPED, reason="graceful_stop_success"
                 )
                 return True
             logger.warning(f"任务 [{self.id}] 优雅停止超时")
@@ -273,7 +270,7 @@ class BackgroundTask:
     def _send_signal_and_wait(self, timeout: float) -> bool:
         """发送SIGINT并等待退出"""
         try:
-            self._channel.send(self.SIGNAL_MAP['SIGINT'])
+            self._channel.send(self.SIGNAL_MAP["SIGINT"])
             logger.debug(f"任务 [{self.id}] 已发送 SIGINT")
 
             start = time.time()
@@ -290,15 +287,10 @@ class BackgroundTask:
         """强制关闭channel"""
         try:
             self._channel.close()
-            self._state_machine.transition_to(
-                TaskStatus.STOPPED,
-                reason="force_close"
-            )
+            self._state_machine.transition_to(TaskStatus.STOPPED, reason="force_close")
         except Exception as e:
             self._state_machine.transition_to(
-                TaskStatus.ERROR,
-                reason="force_close_failed",
-                error=str(e)
+                TaskStatus.ERROR, reason="force_close_failed", error=str(e)
             )
 
     def wait(self, timeout: Optional[float] = None) -> bool:
@@ -309,10 +301,7 @@ class BackgroundTask:
         start = time.time()
         while self.is_running():
             if timeout and (time.time() - start) > timeout:
-                self._state_machine.transition_to(
-                    TaskStatus.TIMEOUT,
-                    reason="wait_timeout"
-                )
+                self._state_machine.transition_to(TaskStatus.TIMEOUT, reason="wait_timeout")
                 return False
             time.sleep(0.1)
         return True
@@ -328,6 +317,7 @@ class BackgroundTask:
         """获取任务摘要"""
         return TaskSummary(
             task_id=self.id,
+            name=self.name,
             command=self.command,
             status=self.status_str,
             status_enum=self.status,
@@ -372,8 +362,10 @@ class BackgroundTask:
 
                 # 检查exit_status
                 try:
-                    if hasattr(self._channel, 'exit_status_ready') and \
-                       self._channel.exit_status_ready():
+                    if (
+                        hasattr(self._channel, "exit_status_ready")
+                        and self._channel.exit_status_ready()
+                    ):
                         exit_code = self._channel.recv_exit_status()
                         self._exit_code = exit_code
 
@@ -381,24 +373,20 @@ class BackgroundTask:
                             self._state_machine.transition_to(
                                 TaskStatus.COMPLETED,
                                 reason="process_exit_success",
-                                exit_code=exit_code
+                                exit_code=exit_code,
                             )
                         elif exit_code == -1:
                             if self._state_machine.status == TaskStatus.STOPPING:
                                 self._state_machine.transition_to(
-                                    TaskStatus.STOPPED,
-                                    reason="process_killed_by_signal"
+                                    TaskStatus.STOPPED, reason="process_killed_by_signal"
                                 )
                             else:
                                 self._state_machine.transition_to(
-                                    TaskStatus.ERROR,
-                                    reason="process_killed_unexpectedly"
+                                    TaskStatus.ERROR, reason="process_killed_unexpectedly"
                                 )
                         else:
                             self._state_machine.transition_to(
-                                TaskStatus.ERROR,
-                                reason="process_exit_error",
-                                exit_code=exit_code
+                                TaskStatus.ERROR, reason="process_exit_error", exit_code=exit_code
                             )
                         self._on_complete()
                         break
@@ -410,9 +398,7 @@ class BackgroundTask:
         except Exception as e:
             logger.error(f"监控线程异常 [{self.id}]: {e}")
             self._state_machine.transition_to(
-                TaskStatus.ERROR,
-                reason="monitor_exception",
-                error=str(e)
+                TaskStatus.ERROR, reason="monitor_exception", error=str(e)
             )
             self._on_complete()
 
@@ -420,14 +406,14 @@ class BackgroundTask:
         """读取输出"""
         try:
             if self._channel.recv_ready():
-                data = self._channel.recv(4096).decode('utf-8', errors='replace')
+                data = self._channel.recv(4096).decode("utf-8", errors="replace")
                 self._process_output(data)
         except:
             pass
 
         try:
             if self._channel.recv_stderr_ready():
-                data = self._channel.recv_stderr(4096).decode('utf-8', errors='replace')
+                data = self._channel.recv_stderr(4096).decode("utf-8", errors="replace")
                 self._process_stderr(data)
         except:
             pass
@@ -435,14 +421,10 @@ class BackgroundTask:
     def _handle_channel_close(self):
         """处理channel关闭"""
         if self._state_machine.status == TaskStatus.STOPPING:
-            self._state_machine.transition_to(
-                TaskStatus.STOPPED,
-                reason="process_stopped_by_user"
-            )
+            self._state_machine.transition_to(TaskStatus.STOPPED, reason="process_stopped_by_user")
         elif self._state_machine.status == TaskStatus.RUNNING:
             self._state_machine.transition_to(
-                TaskStatus.ERROR,
-                reason="channel_closed_unexpectedly"
+                TaskStatus.ERROR, reason="channel_closed_unexpectedly"
             )
         self._on_complete()
 
@@ -472,7 +454,7 @@ class BackgroundTask:
             TaskStatus.ERROR: "错误",
             TaskStatus.TIMEOUT: "超时",
         }.get(self._state_machine.status, "未知")
-        
+
         logger.info(
             f"后台任务{status_str} [{self.id}] {self.command[:50]}... | "
             f"退出码: {self._exit_code} | "
@@ -510,6 +492,7 @@ class BackgroundTask:
     def _detect_remote_files(self) -> List[str]:
         """检测远程文件路径"""
         import re
+
         files = []
 
         if "-w " in self.command:
@@ -591,7 +574,7 @@ class BackgroundTaskManager:
 
         # 创建shell channel
         channel = transport.open_session()
-        channel.get_pty(term='vt100', width=80, height=24)
+        channel.get_pty(term="vt100", width=80, height=24)
         channel.invoke_shell()
 
         return channel
@@ -713,12 +696,12 @@ def bg(
 
 
 __all__ = [
-    'BackgroundTask',
-    'BackgroundTaskManager',
-    'TaskSummary',
-    'BatchTaskResult',
-    'ByteLimitedBuffer',
-    'bg',
-    'TaskStatus',
-    'TaskStateMachine',
+    "BackgroundTask",
+    "BackgroundTaskManager",
+    "TaskSummary",
+    "BatchTaskResult",
+    "ByteLimitedBuffer",
+    "bg",
+    "TaskStatus",
+    "TaskStateMachine",
 ]
