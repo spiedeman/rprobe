@@ -2,9 +2,9 @@
 # 支持YAML格式
 
 # SSH连接配置
-host: "aliyun.spiedeman.top"
-username: "admin"
-password: "bhr0204"  # 建议使用密钥认证
+host: "your-host.com"
+username: "your-username"
+password: "your-password"  # 建议使用密钥认证
 port: 22
 
 # 密钥认证配置
