@@ -652,12 +652,12 @@ class BackgroundTaskManager:
         batch_delay: float = 0.1,
     ) -> BatchTaskResult:
         """
-        批量启动后台任务
+        批量启动后台任务（非阻塞）
 
         Args:
             commands: 任务列表，每项为 {"command": str, "name": str, ...}
-            max_concurrent: 最大并发数，防止同时启动过多任务
-            batch_delay: 每个任务启动间隔（秒）
+            max_concurrent: 保留参数（向后兼容），不再用于阻塞控制
+            batch_delay: 每个任务启动间隔（秒），避免瞬间并发冲击
 
         Returns:
             BatchTaskResult: 批量任务结果对象
@@ -668,7 +668,7 @@ class BackgroundTaskManager:
                 {"command": "tcpdump -i eth1", "name": "capture2"},
                 {"command": "tail -f /var/log/app.log", "name": "log_monitor"},
             ]
-            batch = manager.run_batch(commands, max_concurrent=2)
+            batch = manager.run_batch(commands, batch_delay=0.5)
 
             # 等待所有任务完成
             if batch.wait_all(timeout=300):
@@ -680,10 +680,6 @@ class BackgroundTaskManager:
         """
         tasks = []
         for i, cmd_info in enumerate(commands):
-            # 控制并发：如果当前运行任务过多，等待
-            while len(self.list_running()) >= max_concurrent:
-                time.sleep(0.1)
-
             # 启动任务
             task = self.run(
                 command=cmd_info["command"],

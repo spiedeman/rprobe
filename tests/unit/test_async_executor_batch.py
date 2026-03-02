@@ -183,24 +183,22 @@ class TestBackgroundTaskManagerRunBatch:
         assert second_call.kwargs["cleanup_delay"] == 3600.0  # 默认值
 
     def test_run_batch_concurrent_control(self, mock_manager):
-        """测试并发控制"""
+        """测试批量任务启动 - 立即启动所有任务，不阻塞"""
         manager, _ = mock_manager
-        
+
         # 模拟当前有2个任务在运行
         manager._tasks = {"existing1": Mock(is_running=lambda: True), "existing2": Mock(is_running=lambda: True)}
-        
+
         commands = [
             {"command": "echo 1", "name": "task1"},
             {"command": "echo 2", "name": "task2"},
         ]
-        
-        # 设置 max_concurrent=3，应该可以启动（2现有+2新=4>3，需要等待）
-        with patch('time.sleep') as mock_sleep:  # Mock sleep 加速测试
-            batch = manager.run_batch(commands, max_concurrent=3)
-            
-            # 由于有2个现有任务，启动新任务时可能需要等待
-            # 至少应该启动了一些任务
-            assert manager.run.call_count > 0
+
+        # run_batch 现在立即启动所有任务，不等待槽位
+        batch = manager.run_batch(commands, max_concurrent=3)
+
+        # 所有任务都应该被启动
+        assert manager.run.call_count == 2
 
     def test_run_batch_delay_between_tasks(self, mock_manager):
         """测试任务间延迟"""
