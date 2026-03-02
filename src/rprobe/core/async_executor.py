@@ -202,6 +202,7 @@ class BackgroundTask:
         self._cleanup_delay = cleanup_delay
         self._cleanup_timer: Optional[threading.Timer] = None
         self._manager: Optional["BackgroundTaskManager"] = None
+        self._shell_exited = False  # shell退出标记
 
         # 启动状态
         self._state_machine.transition_to(TaskStatus.RUNNING, "task_started")
@@ -355,12 +356,36 @@ class BackgroundTask:
                 # 读取输出
                 self._read_output()
 
-                # 检查channel状态
-                if not self._channel.active or self._channel.closed:
-                    self._handle_channel_close()
-                    break
+                # 检测到shell退出标记时，尝试获取exit status
+                if self._shell_exited:
+                    exit_code = None
+                    try:
+                        # 立即尝试获取exit status（不等待）
+                        if (
+                            hasattr(self._channel, "exit_status_ready")
+                            and self._channel.exit_status_ready()
+                        ):
+                            exit_code = self._channel.recv_exit_status()
+                            self._exit_code = exit_code
+                    except Exception as e:
+                        logger.debug(f"获取exit status失败 [{self.id}]: {e}")
 
-                # 检查exit_status
+                    # 基于shell退出标记判断任务完成
+                    # exit_code为None或0都表示正常完成
+                    if exit_code is None or exit_code == 0:
+                        self._state_machine.transition_to(
+                            TaskStatus.COMPLETED,
+                            reason="process_exit_success",
+                            exit_code=exit_code or 0,
+                        )
+                    else:
+                        self._state_machine.transition_to(
+                            TaskStatus.ERROR, reason="process_exit_error", exit_code=exit_code
+                        )
+                    self._on_complete()
+                    return
+
+                # 正常检查exit_status（channel未关闭时）
                 try:
                     if (
                         hasattr(self._channel, "exit_status_ready")
@@ -393,7 +418,65 @@ class BackgroundTask:
                 except:
                     pass
 
+                # 检查channel状态（当active变为False时，可能是channel关闭）
+                if not self._channel.active or self._channel.closed:
+                    # Channel关闭时尝试获取exit status（shell模式下exit命令会导致这种情况）
+                    try:
+                        if hasattr(self._channel, "exit_status_ready") and self._channel.exit_status_ready():
+                            exit_code = self._channel.recv_exit_status()
+                            self._exit_code = exit_code
+
+                            if exit_code == 0:
+                                self._state_machine.transition_to(
+                                    TaskStatus.COMPLETED,
+                                    reason="process_exit_success",
+                                    exit_code=exit_code,
+                                )
+                            elif exit_code == -1:
+                                if self._state_machine.status == TaskStatus.STOPPING:
+                                    self._state_machine.transition_to(
+                                        TaskStatus.STOPPED, reason="process_killed_by_signal"
+                                    )
+                                else:
+                                    self._state_machine.transition_to(
+                                        TaskStatus.ERROR, reason="process_killed_unexpectedly"
+                                    )
+                            else:
+                                self._state_machine.transition_to(
+                                    TaskStatus.ERROR, reason="process_exit_error", exit_code=exit_code
+                                )
+                            self._on_complete()
+                            break
+                    except:
+                        pass
+
+                    # 无法获取exit status，按异常关闭处理
+                    self._handle_channel_close()
+                    break
+
                 time.sleep(0.01)
+
+            # 循环结束时，如果任务仍在运行，尝试获取exit status
+            if self._state_machine.status == TaskStatus.RUNNING:
+                try:
+                    if hasattr(self._channel, "exit_status_ready") and self._channel.exit_status_ready():
+                        exit_code = self._channel.recv_exit_status()
+                        self._exit_code = exit_code
+                        if exit_code == 0:
+                            self._state_machine.transition_to(
+                                TaskStatus.COMPLETED,
+                                reason="process_exit_success",
+                                exit_code=exit_code,
+                            )
+                        else:
+                            self._state_machine.transition_to(
+                                TaskStatus.ERROR, reason="process_exit_error", exit_code=exit_code
+                            )
+                        self._on_complete()
+                    else:
+                        self._handle_channel_close()
+                except:
+                    self._handle_channel_close()
 
         except Exception as e:
             logger.error(f"监控线程异常 [{self.id}]: {e}")
@@ -403,11 +486,15 @@ class BackgroundTask:
             self._on_complete()
 
     def _read_output(self):
-        """读取输出"""
+        """读取输出，并检测shell退出标记"""
         try:
             if self._channel.recv_ready():
                 data = self._channel.recv(4096).decode("utf-8", errors="replace")
                 self._process_output(data)
+                # 检测shell退出标记（中英文）
+                if "\u6ce8\u9500" in data or "logout" in data.lower():
+                    self._shell_exited = True
+                    logger.debug(f"\u68c0\u6d4b\u5230shell\u9000\u51fa\u6807\u8bb0 [{self.id}]")
         except:
             pass
 
@@ -422,11 +509,30 @@ class BackgroundTask:
         """处理channel关闭"""
         if self._state_machine.status == TaskStatus.STOPPING:
             self._state_machine.transition_to(TaskStatus.STOPPED, reason="process_stopped_by_user")
+            self._on_complete()
         elif self._state_machine.status == TaskStatus.RUNNING:
-            self._state_machine.transition_to(
-                TaskStatus.ERROR, reason="channel_closed_unexpectedly"
-            )
-        self._on_complete()
+            # 尝试获取exit code，如果能获取到且为0，说明正常完成
+            try:
+                if hasattr(self._channel, "exit_status_ready") and self._channel.exit_status_ready():
+                    exit_code = self._channel.recv_exit_status()
+                    self._exit_code = exit_code
+                    if exit_code == 0:
+                        self._state_machine.transition_to(
+                            TaskStatus.COMPLETED, reason="process_exit_success", exit_code=exit_code
+                        )
+                    else:
+                        self._state_machine.transition_to(
+                            TaskStatus.ERROR, reason="process_exit_error", exit_code=exit_code
+                        )
+                else:
+                    self._state_machine.transition_to(
+                        TaskStatus.ERROR, reason="channel_closed_unexpectedly"
+                    )
+            except:
+                self._state_machine.transition_to(
+                    TaskStatus.ERROR, reason="channel_closed_unexpectedly"
+                )
+            self._on_complete()
 
     def _process_output(self, data: str):
         """处理stdout"""
@@ -539,7 +645,8 @@ class BackgroundTaskManager:
 
             # Shell模式：发送命令
             time.sleep(0.5)  # 等待shell初始化
-            channel.send(command + "\n")
+            # 添加 'exit' 确保shell在命令执行后关闭，使exit_status_ready()能检测到完成
+            channel.send(command + "; exit\n")
 
             # 创建任务
             task = BackgroundTask(
