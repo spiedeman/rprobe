@@ -13,7 +13,7 @@ import logging
 import socket
 import time
 import uuid
-from typing import Optional, Dict, List, Callable
+from typing import Optional, Dict, List, Callable, Any
 
 # 移除：import paramiko
 # 改为从后端导入异常
@@ -496,6 +496,50 @@ class SSHClient:
 
         return self._bg_manager.run(
             command, name=name, buffer_size_mb=buffer_size_mb, cleanup_delay=cleanup_delay
+        )
+
+    def bg_batch(
+        self,
+        commands: List[Dict[str, Any]],
+        max_concurrent: int = 5,
+        batch_delay: float = 0.1,
+    ):
+        """
+        批量启动后台任务（非阻塞执行多个长时间命令）
+
+        Args:
+            commands: 任务列表，每项为 {"command": str, "name": str, ...}
+            max_concurrent: 最大并发数，防止同时启动过多任务
+            batch_delay: 每个任务启动间隔（秒）
+
+        Returns:
+            BatchTaskResult: 批量任务结果对象
+
+        Example:
+            commands = [
+                {"command": "tcpdump -i eth0", "name": "capture1"},
+                {"command": "tail -f /var/log/app.log", "name": "log_monitor"},
+            ]
+            batch = client.bg_batch(commands, max_concurrent=2)
+
+            # 等待所有任务完成
+            if batch.wait_all(timeout=300):
+                print("所有任务完成")
+
+            # 获取所有结果
+            for summary in batch.get_summaries():
+                print(f"{summary.name}: {summary.status}")
+        """
+        # 确保已连接
+        if not self.is_connected:
+            self.connect()
+
+        if self._bg_manager is None:
+            manager_class = _get_background_manager_class()
+            self._bg_manager = manager_class(self)
+
+        return self._bg_manager.run_batch(
+            commands, max_concurrent=max_concurrent, batch_delay=batch_delay
         )
 
     @property

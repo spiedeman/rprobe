@@ -387,10 +387,8 @@ def example_8b_batch_background_tasks():
             print(f"   准备启动 {len(commands)} 个后台任务")
 
             print("\n2. 批量启动（最多2个并发）:")
-            batch = client._bg_manager.run_batch(
-                commands,
-                max_concurrent=2,
-                batch_delay=0.5
+            batch = client.bg_batch(
+                commands, max_concurrent=2, batch_delay=0.5
             )
             print(f"   ✓ 已启动 {len(batch.tasks)} 个任务")
             print(f"   ✓ 当前运行中: {batch.running_count}")
