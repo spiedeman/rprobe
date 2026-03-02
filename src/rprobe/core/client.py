@@ -273,7 +273,11 @@ class SSHClient:
         logger.info(f"默认 Shell 会话已设置为 '{session_id}'")
 
     def shell_command(
-        self, command: str, timeout: Optional[float] = None, session_id: Optional[str] = None
+        self,
+        command: str,
+        timeout: Optional[float] = None,
+        session_id: Optional[str] = None,
+        auto_create: bool = True,
     ) -> CommandResult:
         """
         在持久 shell 会话中执行命令
@@ -282,6 +286,7 @@ class SSHClient:
             command: 要执行的命令
             timeout: 命令执行超时（秒）
             session_id: 会话 ID（可选，默认使用默认会话）
+            auto_create: 是否自动创建默认会话（当不存在时），默认 True
 
         Returns:
             CommandResult: 命令执行结果
@@ -290,7 +295,12 @@ class SSHClient:
         if session_id is None:
             session = self._session_manager.get_default_session()
             if session is None:
-                raise RuntimeError("没有活动的 Shell 会话，请先调用 open_shell_session()")
+                if auto_create:
+                    logger.info("自动创建默认 shell 会话")
+                    self.open_shell_session()
+                    session = self._session_manager.get_default_session()
+                else:
+                    raise RuntimeError("没有活动的 Shell 会话，请先调用 open_shell_session()")
         else:
             session = self._session_manager.get_session(session_id)
             if session is None:
